@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="JQL.Test/JQL.Test.csproj" Id="1aa0f941-5e3a-4f78-9c2b-527ae35fcfac" />
+  <Project Path="JQL/JQL.csproj" />
+</Solution>
