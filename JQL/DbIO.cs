@@ -2,23 +2,17 @@
 using PowNet.Common;
 using PowNet.Configuration;
 using PowNet.Extensions;
+using PowNet.Data;
 using System.Data;
 using System.Data.Common;
 
 namespace JQL
 {
-    public abstract class DbIO : IDisposable
+    public abstract class DbIO : DbCommandExecutor
     {
-        private readonly DbConnection dbConnection;
-        
-        public DatabaseConfiguration DbConf { get; init; }
-        public DbIO(DatabaseConfiguration dbConf)
-        {
-            DbConf = dbConf;
-            dbConnection = CreateConnection();
-        }
+        public DbIO(DatabaseConfiguration dbConf) : base(dbConf) { }
 
-		public static DbIO Instance(DatabaseConfiguration dbConf)
+		public static new DbIO Instance(DatabaseConfiguration dbConf)
 		{
 			if (dbConf.ServerType == ServerType.MsSql) return new DbIOMsSql(dbConf);
 			throw new PowNetException($"DbServerTypeNotImplementedYet", System.Reflection.MethodBase.GetCurrentMethod())
@@ -26,7 +20,7 @@ namespace JQL
 				.GetEx();
 		}
 
-		public static DbIO Instance(string connectionName = "DefaultConnection")
+		public static new DbIO Instance(string connectionName = "DefaultConnection")
 		{
             var dbConf = DatabaseConfiguration.FromSettings(connectionName);
 			if (dbConf.ServerType == ServerType.MsSql) return new DbIOMsSql(dbConf);
@@ -35,149 +29,19 @@ namespace JQL
 				.GetEx();
 		}
 
-		public Dictionary<string, DataTable> ToDataSet(string commandString, List<DbParameter>? dbParameters = null, List<string>? TableNames = null)
+        // Backward-compatibility shim for legacy call sites
+        public void ToNoneQuery(string commandString, List<DbParameter>? dbParameters = null)
         {
-            try
-            {
-                using DbCommand command = CreateDbCommand(commandString, dbConnection, dbParameters);
-                using DataSet ds = new();
-                var adapter = CreateDataAdapter(command);
-                adapter.Fill(ds);
-                var dic = new Dictionary<string, DataTable>(ds.Tables.Count); // Pre-size dictionary
-                for (int ind = 0; ind < ds.Tables.Count; ind++)
-                {
-                    DataTable dt = ds.Tables[ind];
-                    string tableName = (TableNames is not null && ind < TableNames.Count) 
-                        ? TableNames[ind] 
-                        : $"T{ind}";
-                    dic.Add(tableName, dt);
-                }
-                return dic;
-            }
-            catch (Exception ex)
-            {
-                var contentBuilder = new System.Text.StringBuilder(ex.Message.Length + commandString.Length + 100);
-                contentBuilder.Append(ex.Message).Append(StringExtensions.NL)
-                             .Append(commandString).Append(StringExtensions.NL)
-                             .Append(dbParameters.ToJsonStringByNewtonsoft()).Append(StringExtensions.NL);
-                
-				throw new PowNetException("NameAndPhraseCanNotBeUnknownTogether", System.Reflection.MethodBase.GetCurrentMethod())
-					.AddParam("Message", ex.Message)
-					.AddParam("Query", contentBuilder.ToString())
-					.GetEx();
-            }
-		}
-
-        public DataTable ToDataTable(string commandString, List<DbParameter>? dbParameters = null)
+            _ = ToNonQuery(commandString, dbParameters);
+        }
+        // Note: prefer using ExecuteNonQueryAsync returning Task<int>. This keeps old signature.
+        public void ToNoneQueryAsync(string commandString, List<DbParameter>? dbParameters = null)
         {
-            return ToDataTables(commandString, dbParameters: dbParameters, tableName: "MainDT")["MainDT"];
+            _ = ToNonQueryAsync(commandString, dbParameters);
         }
 
-        public Dictionary<string, DataTable> ToDataTables(string commandString, List<DbParameter>? dbParameters = null, string? tableName = null)
-        {
-            try
-            {
-                using DbCommand command = CreateDbCommand(commandString, dbConnection, dbParameters);
-                using DbDataReader sdr = command.ExecuteReader();
-                DataTable dt = new();
-                dt.Load(sdr);
-                Dictionary<string, DataTable> dic = new() { { tableName ?? "Master", dt } };
-                return dic;
-            }
-            catch (Exception ex)
-            {
-                var contentBuilder = new System.Text.StringBuilder(ex.Message.Length + commandString.Length + 100);
-                contentBuilder.Append(ex.Message).Append(StringExtensions.NL)
-                             .Append(commandString).Append(StringExtensions.NL)
-                             .Append(dbParameters.ToJsonStringByNewtonsoft()).Append(StringExtensions.NL);
-                
-				throw new PowNetException(ex.Message, System.Reflection.MethodBase.GetCurrentMethod())
-					.AddParam("Query", contentBuilder.ToString())
-					.GetEx();
-			}
-		}
-        public object? ToScalar(string commandString, List<DbParameter>? dbParameters = null)
-        {
-            try
-            {
-                using DbCommand command = CreateDbCommand(commandString, dbConnection, dbParameters);
-                var s = command.ExecuteScalar();
-                return s;
-            }
-            catch (Exception ex)
-            {
-                var contentBuilder = new System.Text.StringBuilder(ex.Message.Length + commandString.Length + 100);
-                contentBuilder.Append(ex.Message).Append(StringExtensions.NL)
-                             .Append(commandString).Append(StringExtensions.NL)
-                             .Append(dbParameters.ToJsonStringByNewtonsoft()).Append(StringExtensions.NL);
-                
-				throw new PowNetException("NameAndPhraseCanNotBeUnknownTogether", System.Reflection.MethodBase.GetCurrentMethod())
-					.AddParam("Message", ex.Message)
-					.AddParam("Query", contentBuilder.ToString())
-					.GetEx();
-			}
-		}
-		public void ToNoneQuery(string commandString, List<DbParameter>? dbParameters = null)
-		{
-            try
-            {
-                using DbCommand command = CreateDbCommand(commandString, dbConnection, dbParameters);
-                command.ExecuteNonQuery();
-            }
-            catch (Exception ex)
-            {
-                var contentBuilder = new System.Text.StringBuilder(ex.Message.Length + commandString.Length + 100);
-                contentBuilder.Append(ex.Message).Append(StringExtensions.NL)
-                             .Append(commandString).Append(StringExtensions.NL)
-                             .Append(dbParameters.ToJsonStringByNewtonsoft()).Append(StringExtensions.NL);
-                
-				throw new PowNetException("NameAndPhraseCanNotBeUnknownTogether", System.Reflection.MethodBase.GetCurrentMethod())
-					.AddParam("Message", ex.Message)
-					.AddParam("Query", contentBuilder.ToString())
-					.GetEx();
-			}
-		}
-		public void ToNoneQueryAsync(string commandString, List<DbParameter>? dbParameters = null)
-		{
-            try
-            {
-                using DbCommand command = CreateDbCommand(commandString, dbConnection, dbParameters);
-                command.ExecuteNonQueryAsync();
-            }
-            catch (Exception ex)
-            {
-                var contentBuilder = new System.Text.StringBuilder(ex.Message.Length + commandString.Length + 100);
-                contentBuilder.Append(ex.Message).Append(StringExtensions.NL)
-                             .Append(commandString).Append(StringExtensions.NL)
-                             .Append(dbParameters.ToJsonStringByNewtonsoft()).Append(StringExtensions.NL);
-                
-				throw new PowNetException("NameAndPhraseCanNotBeUnknownTogether", System.Reflection.MethodBase.GetCurrentMethod())
-					.AddParam("Message", ex.Message)
-					.AddParam("Query", contentBuilder.ToString())
-					.GetEx();
-			}
-		}
+        public static new bool TestConnection(DatabaseConfiguration dbConf) => DbCommandExecutor.TestConnection(dbConf);
 
-        public static bool TestConnection(DatabaseConfiguration dbConf)
-        {
-            try
-            {
-                using DbIO dbIO = Instance(dbConf);
-                using DbConnection dbConnection = dbIO.CreateConnection();
-                return dbConnection.State == ConnectionState.Open;
-            }
-            catch (Exception ex)
-            {
-                throw new PowNetException("TestConnectionFailed", System.Reflection.MethodBase.GetCurrentMethod())
-                    .AddParam("Message", ex.Message)
-                    .GetEx();
-            }
-		}   
-
-		public abstract DbConnection CreateConnection();
-        public abstract DbCommand CreateDbCommand(string commandText, DbConnection dbConnection, List<DbParameter>? dbParameters = null);
-        public abstract DataAdapter CreateDataAdapter(DbCommand dbCommand);
-        public abstract DbParameter CreateParameter(string columnName, string columnType, int? columnSize = null, object? value = null);
         public abstract string GetSqlTemplate(QueryType dbQueryType, bool isForSubQuery = false);
         public abstract string GetPaginationSqlTemplate();
         public abstract string GetGroupSqlTemplate();
@@ -186,31 +50,6 @@ namespace JQL
         public abstract string GetTranBlock();
         public abstract string CompileWhereCompareClause(CompareClause whereCompareClause, string source, string columnFullName, string dbParamName, string dbType);
 		public abstract string DbParamToCSharpInputParam(DbParam dbParam);
-
-		private bool _disposed = false;
-
-		public void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-		protected virtual void Dispose(bool disposing)
-		{
-			if (_disposed) return;
-			if (disposing)
-			{
-				dbConnection?.Close();
-				dbConnection?.Dispose();
-			}
-			_disposed = true;
-		}
-
-		~DbIO()
-		{
-			Dispose(false);
-		}
-
 	}
 
     public class DbIOMsSql(DatabaseConfiguration dbInfo) : DbIO(dbInfo)

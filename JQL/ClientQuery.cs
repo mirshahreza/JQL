@@ -12,7 +12,7 @@ namespace JQL
 	public class ClientQuery : IDisposable
     {
         
-        public string QueryFullName { set; get; }
+        public required string QueryFullName { set; get; }
         public List<ClientParam>? Params { set; get; }
         public Where? Where { set; get; }
         public List<OrderClause>? OrderClauses { set; get; }
