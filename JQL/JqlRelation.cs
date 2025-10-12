@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace JQL
 {
-    public class DbRelation
+    public class JqlRelation
     {
         public string RelationName { set; get; }
         public string RelationTable { set; get; }
@@ -29,7 +29,7 @@ namespace JQL
 
         public RelationUiWidget? RelationUiWidget { set; get; }
 
-        public DbRelation(string relationTable, string relationPkColumn, string relationFkColumn)
+        public JqlRelation(string relationTable, string relationPkColumn, string relationFkColumn)
         {
             RelationTable = relationTable;
             RelationPkColumn = relationPkColumn;
@@ -38,6 +38,6 @@ namespace JQL
         }
 
         [JsonConstructor]
-        public DbRelation() { }
+        public JqlRelation() { }
     }
 }

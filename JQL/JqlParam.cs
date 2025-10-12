@@ -1,6 +1,6 @@
 ﻿namespace JQL
 {
-    public class DbParam(string name, string dbType)
+    public class JqlParam(string name, string dbType)
 	{
 		public string Name { set; get; } = name;
 		public string DbType { set; get; } = dbType;

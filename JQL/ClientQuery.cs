@@ -14,10 +14,10 @@ namespace JQL
         
         public required string QueryFullName { set; get; }
         public List<ClientParam>? Params { set; get; }
-        public Where? Where { set; get; }
-        public List<OrderClause>? OrderClauses { set; get; }
+        public JqlWhere? Where { set; get; }
+        public List<JqlOrderClause>? OrderClauses { set; get; }
         public string? OrderSqlStatement { set; get; }
-        public Pagination? Pagination { set; get; }
+        public JqlPagination? Pagination { set; get; }
         public bool AddAggregationsToMainSelect { get; set; } = false;
         public bool IsSubQuery { get; set; } = false;
         public int? SubQueryIndex { get; set; }
@@ -33,8 +33,8 @@ namespace JQL
         private Hashtable? UserContext { get; set; }
 
         private DbIO dbIO;
-        private DbDialog dbDialog;
-        private DbQuery dbQuery;
+        private JqlModel jqlModel;
+        private JqlQuery dbQuery;
 		
 		#region Initiation
 		public static ClientQuery GetInstanceByQueryName(string queryFullName, Hashtable? userContext = null)
@@ -83,8 +83,8 @@ namespace JQL
             Relations = clientQuery.Relations;
 
             string[] queryFullNameParts = QueryFullName.Split('.');
-            dbDialog = DbDialog.Load(PowNetConfiguration.ServerPath, queryFullNameParts[0], queryFullNameParts[1]);
-            DbQuery? dbq = dbDialog.DbQueries.FirstOrDefault(i => i.Name == queryFullNameParts[2]) ?? throw new PowNetException("RequestedQueryDoesNotExist", System.Reflection.MethodBase.GetCurrentMethod())
+            jqlModel = JqlModel.Load(PowNetConfiguration.ServerPath, queryFullNameParts[0], queryFullNameParts[1]);
+            JqlQuery? dbq = jqlModel.DbQueries.FirstOrDefault(i => i.Name == queryFullNameParts[2]) ?? throw new PowNetException("RequestedQueryDoesNotExist", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("QueryFullName", QueryFullName)
                     .GetEx();
 			dbQuery = dbq;
@@ -98,7 +98,7 @@ namespace JQL
             if (dbQuery.Columns is null) throw new PowNetException("CanNotInsertWhileThereIsNoColumnSpecified", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("Query", QueryFullName)
                     .GetEx();
-            DbColumn pk = dbDialog.GetPk();
+            JqlColumn pk = jqlModel.GetPk();
             string stmMain = dbIO.GetSqlTemplate(dbQuery.Type, IsSubQuery);
             string targetTable = GetFinalObjectName();
             
@@ -106,7 +106,7 @@ namespace JQL
             var valuesBuilder = new System.Text.StringBuilder(dbQuery.Columns.Count * 25); // Estimate capacity
             bool isFirst = true;
             
-            foreach (DbQueryColumn dbQueryColumn in dbQuery.Columns)
+            foreach (JqlQueryColumn dbQueryColumn in dbQuery.Columns)
             {
                 if (!isFirst)
                 {
@@ -145,10 +145,10 @@ namespace JQL
                 var subQueriesBuilder = new System.Text.StringBuilder(Relations.Count * 100); // Estimate capacity
                 foreach (var otm in Relations)
                 {
-                    DbRelation? dbRelation = dbDialog.Relations?.FirstOrDefault(i => i.RelationTable == otm.Key);
+                    JqlRelation? dbRelation = jqlModel.Relations?.FirstOrDefault(i => i.RelationTable == otm.Key);
                     if (dbRelation != null)
                     {
-                        string createQ = $"{dbDialog.DbConfName}.{otm.Key}.{dbRelation.CreateQuery}";
+                        string createQ = $"{jqlModel.DbConfName}.{otm.Key}.{dbRelation.CreateQuery}";
                         List<List<ClientParam>> rows = otm.Value;
                         int ind = 1;
 
@@ -160,7 +160,7 @@ namespace JQL
                             subCq.IsSubQuery = true;
                             subCq.SubQueryIndex = ind;
                             subCq.Params = row;
-                            string fkParamName = DbUtils.GenParamName(subCq.dbDialog.ObjectName, dbRelation.RelationFkColumn, ind);
+                            string fkParamName = DbUtils.GenParamName(subCq.jqlModel.ObjectName, dbRelation.RelationFkColumn, ind);
                             string subStatement = subCq.GetCreateStatement().Replace($"@{fkParamName}", "@MasterId");
                             subQueriesBuilder.Append(StringExtensions.NL).Append(subStatement);
                             subCq.PreExec();
@@ -178,18 +178,18 @@ namespace JQL
             return stmMain;
         }
 
-        private string GetCreateStatementForHistory(List<DbQueryColumn>? columnsToInsert, string masterTable, string masterTablePkName, string masterTablePkParamName)
+        private string GetCreateStatementForHistory(List<JqlQueryColumn>? columnsToInsert, string masterTable, string masterTablePkName, string masterTablePkParamName)
         {
             if (dbQuery.Columns is null) throw new PowNetException("CanNotInsertWhileThereIsNoColumnSpecified", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("Query", QueryFullName)
                     .GetEx();
-            DbColumn pk = dbDialog.GetPk();
+            JqlColumn pk = jqlModel.GetPk();
             string stmMain = dbIO.GetSqlTemplate(dbQuery.Type, IsSubQuery);
             string targetTable = GetFinalObjectName();
             string columns = "";
             string values = "";
             string sep = "";
-            foreach (DbQueryColumn dbQueryColumn in dbQuery.Columns)
+            foreach (JqlQueryColumn dbQueryColumn in dbQuery.Columns)
             {
                 if (dbQueryColumn.Name is null) continue;
                 columns += $"{sep}{dbQueryColumn.Name}";
@@ -317,15 +317,15 @@ namespace JQL
             if (dbQuery.Columns is null) throw new PowNetException("CanNotUpdateWhileThereIsNoColumnsSpecifiedToUpdate", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("Query", QueryFullName)
                     .GetEx();
-            DbColumn pk = dbDialog.GetPk();
+            JqlColumn pk = jqlModel.GetPk();
             string pkParamName = GetFinalParamName(pk.Name);
             string stmMain = dbIO.GetSqlTemplate(QueryType.UpdateByKey);
             string targetTable = GetFinalObjectName();
             string sets = "";
             string sep = "";
-            foreach (DbQueryColumn dbQueryColumn in dbQuery.Columns)
+            foreach (JqlQueryColumn dbQueryColumn in dbQuery.Columns)
             {
-                DbParam? dbParam = dbQuery?.Params?.FirstOrDefault(i => i.Name == dbQueryColumn.Name);
+                JqlParam? dbParam = dbQuery?.Params?.FirstOrDefault(i => i.Name == dbQueryColumn.Name);
                 if (dbParam is not null && dbQueryColumn.Name != pk.Name && dbQueryColumn.Name is not null)
                 {
                     sets += $"{sep}{DbUtils.GetSetColumnParamPair(GetFinalObjectName(), dbQueryColumn.Name, SubQueryIndex)}";
@@ -342,16 +342,16 @@ namespace JQL
             {
                 foreach (var otm in Relations)
                 {
-                    DbRelation? dbRelation = dbDialog.Relations?.FirstOrDefault(i => i.RelationTable == otm.Key);
+                    JqlRelation? dbRelation = jqlModel.Relations?.FirstOrDefault(i => i.RelationTable == otm.Key);
 
 					if (dbRelation is not null)
                     {
 						string? dbQueryRelation = dbQuery?.Relations?.FirstOrDefault(i => i == dbRelation.RelationName);
 						if(dbQueryRelation is not null)
                         {
-	                        string createQ = $"{dbDialog.DbConfName}.{otm.Key}.{dbRelation.CreateQuery}";
-							string UpdateQ = $"{dbDialog.DbConfName}.{otm.Key}.{dbRelation.UpdateByKeyQuery}";
-							string deleteQ = $"{dbDialog.DbConfName}.{otm.Key}.{dbRelation.DeleteByKeyQuery}";
+	                        string createQ = $"{jqlModel.DbConfName}.{otm.Key}.{dbRelation.CreateQuery}";
+							string UpdateQ = $"{jqlModel.DbConfName}.{otm.Key}.{dbRelation.UpdateByKeyQuery}";
+							string deleteQ = $"{jqlModel.DbConfName}.{otm.Key}.{dbRelation.DeleteByKeyQuery}";
 							List<List<ClientParam>> rows = otm.Value;
 							int ind = 1;
 
@@ -376,19 +376,19 @@ namespace JQL
 									subCq.Params = row;
 									subCq.PreExec();
 
-									string fkParamName = DbUtils.GenParamName(subCq.dbDialog.ObjectName, dbRelation.RelationFkColumn, ind);
+									string fkParamName = DbUtils.GenParamName(subCq.jqlModel.ObjectName, dbRelation.RelationFkColumn, ind);
 									if (subCq.dbQuery.Type == QueryType.Create)
 									{
 										subQueries += $"{StringExtensions.NL}{subCq.GetCreateStatement()}".Replace($"@{fkParamName}", $"@{pkParamName}");
 									}
 									else if (subCq.dbQuery.Type == QueryType.UpdateByKey)
 									{
-										string subCqpkName = DbUtils.GenParamName(subCq.GetFinalObjectName(), subCq.dbDialog.GetPk().Name, null);
+										string subCqpkName = DbUtils.GenParamName(subCq.GetFinalObjectName(), subCq.jqlModel.GetPk().Name, null);
 										subQueries += $"{StringExtensions.NL}{subCq.GetUpdateByKeyStatement()}".Replace($"@{subCqpkName}", $"@{subCqpkName}_{ind}");
 									}
 									else
 									{
-										string subCqpkName = DbUtils.GenParamName(subCq.GetFinalObjectName(), subCq.dbDialog.GetPk().Name, null);
+										string subCqpkName = DbUtils.GenParamName(subCq.GetFinalObjectName(), subCq.jqlModel.GetPk().Name, null);
 										subQueries += $"{StringExtensions.NL}{subCq.GetDeleteByKeyStatement()}".Replace($"@{subCqpkName}", $"@{subCqpkName}_{ind}");
 									}
 
@@ -405,17 +405,17 @@ namespace JQL
 
             if(dbQuery is not null && dbQuery.Params is not null && dbQuery.HistoryTable is not null && dbQuery.HistoryTable!="")
             {
-                DbDialog dbDialogLog = DbDialog.Load(dbDialog.GetDbDialogFolder(), dbDialog.DbConfName, dbQuery.HistoryTable);
-                DbQuery? qInsertHistory = dbDialogLog.DbQueries.FirstOrDefault(i => i.Name.EqualsIgnoreCase(nameof(QueryType.Create)));
+                JqlModel jqlModelLog = JqlModel.Load(jqlModel.GetModelFolder(), jqlModel.DbConfName, dbQuery.HistoryTable);
+                JqlQuery? qInsertHistory = jqlModelLog.DbQueries.FirstOrDefault(i => i.Name.EqualsIgnoreCase(nameof(QueryType.Create)));
                 if (qInsertHistory is not null)
                 {
-                    ClientQuery clientQueryCreateLog = GetInstanceByQueryName($"{dbDialog.DbConfName}.{dbQuery.HistoryTable}.{QueryType.Create}", UserContext);
+                    ClientQuery clientQueryCreateLog = GetInstanceByQueryName($"{jqlModel.DbConfName}.{dbQuery.HistoryTable}.{QueryType.Create}", UserContext);
                     clientQueryCreateLog.IsSubQuery = true;
                     string masterIdParamNameInHistoty = DbUtils.GenParamName(dbQuery.HistoryTable, pk.Name);
-                    string masterIdParamName = DbUtils.GenParamName(dbDialog.ObjectName, pk.Name);
+                    string masterIdParamName = DbUtils.GenParamName(jqlModel.ObjectName, pk.Name);
                     List<string>? qParams = qInsertHistory.Params?.Select(i => i.Name).ToList();
-                    List<DbQueryColumn>? columnsToInsert = qInsertHistory.Columns?.Where(i => qParams?.ContainsIgnoreCase(i.Name) == false).ToList();
-                    preQueries = $"{StringExtensions.NL}{clientQueryCreateLog.GetCreateStatementForHistory(columnsToInsert, dbDialog.ObjectName,pk.Name,pkParamName)}{StringExtensions.NL}";
+                    List<JqlQueryColumn>? columnsToInsert = qInsertHistory.Columns?.Where(i => qParams?.ContainsIgnoreCase(i.Name) == false).ToList();
+                    preQueries = $"{StringExtensions.NL}{clientQueryCreateLog.GetCreateStatementForHistory(columnsToInsert, jqlModel.ObjectName,pk.Name,pkParamName)}{StringExtensions.NL}";
                     clientQueryCreateLog.Params = [];
                     foreach (var p in dbQuery.Params) clientQueryCreateLog.Params.Add(new(p.Name, p.Value));
                     clientQueryCreateLog.PreExec();
@@ -429,7 +429,7 @@ namespace JQL
             return stmMain;
         }
 
-        private void ValidateRelationCount(DbRelation dbRelation, List<List<ClientParam>> rows, bool checkForDeletedItems)
+        private void ValidateRelationCount(JqlRelation dbRelation, List<List<ClientParam>> rows, bool checkForDeletedItems)
         {
             int finalRowsCount = checkForDeletedItems == true ? rows.Count - rows.Where(i => i.FirstOrDefault(cp => cp.Name == "_flag_")?.Value?.ToStringEmpty() == "d").Count() : rows.Count;
             int minN = dbRelation.MinN.ToIntSafe();
@@ -454,7 +454,7 @@ namespace JQL
 
 		private string GetDeleteByKeyStatement()
         {
-            DbColumn pk = dbDialog.GetPk();
+            JqlColumn pk = jqlModel.GetPk();
             ClientParam? pkParam = (Params?.FirstOrDefault(i => i.Name == pk.Name)) ?? throw new PowNetException("DeleteByKeyMustContainsPrimaryKeyParameter", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("Query", QueryFullName)
                     .GetEx();
@@ -468,14 +468,14 @@ namespace JQL
                 string subQueries = "";
                 foreach (var otmName in dbQuery.Relations)
                 {
-                    DbRelation otm = dbDialog.GetRelation(otmName);
-                    DbDialog? dbDialogRelationTable = DbDialog.TryLoad(PowNetConfiguration.ServerPath, dbDialog.DbConfName, otm.RelationTable);
-                    if(dbDialogRelationTable != null)
+                    JqlRelation otm = jqlModel.GetRelation(otmName);
+                    JqlModel? jqlModelRelationTable = JqlModel.TryLoad(PowNetConfiguration.ServerPath, jqlModel.DbConfName, otm.RelationTable);
+                    if(jqlModelRelationTable != null)
                     {
-                        DbColumn dbColumnRelationFk = dbDialogRelationTable.GetColumn(otm.RelationFkColumn);
+                        JqlColumn dbColumnRelationFk = jqlModelRelationTable.GetColumn(otm.RelationFkColumn);
                         if (dbColumnRelationFk.Fk is null || dbColumnRelationFk.Fk.EnforceRelation != true)
                         {
-	                        string deleteQ = $"{dbDialog.DbConfName}.{otm.RelationTable}.{otm.DeleteQuery}";
+	                        string deleteQ = $"{jqlModel.DbConfName}.{otm.RelationTable}.{otm.DeleteQuery}";
 							var subCq = GetInstanceByQueryName(deleteQ, UserContext);
 							subCq.IsSubQuery = true;
 							subCq.Params = [new ClientParam(otm.RelationFkColumn, pkParam.Value)];
@@ -516,7 +516,7 @@ namespace JQL
 
             var paramsBuilder = new System.Text.StringBuilder(dbQuery.Params.Count * 40); // Estimate capacity  
             bool isFirst = true;
-            foreach (DbParam p in dbQuery.Params)
+            foreach (JqlParam p in dbQuery.Params)
             {
                 if (!isFirst) paramsBuilder.Append(", ");
                 paramsBuilder.Append('@').Append(p.Name).Append("=@").Append(GetFinalParamName(p.Name));
@@ -534,7 +534,7 @@ namespace JQL
             
             var paramsBuilder = new System.Text.StringBuilder(dbQuery.Params.Count * 30); // Estimate capacity
             bool isFirst = true;
-            foreach (DbParam p in dbQuery.Params)
+            foreach (JqlParam p in dbQuery.Params)
             {
                 if (!isFirst) paramsBuilder.Append(", ");
                 paramsBuilder.Append('@').Append(GetFinalParamName(p.Name));
@@ -546,7 +546,7 @@ namespace JQL
         private Tuple<string, string, string?> CompileColumnsToSelect()
         {
             string targetTable = GetFinalObjectName();
-            List<DbQueryColumn>? columnsToDo;
+            List<JqlQueryColumn>? columnsToDo;
             if (ColumnsContainment == Containment.ExcludeIndicatedItems)
             {
                 columnsToDo = ClientIndicatedColumns == null ? dbQuery.Columns : dbQuery.Columns?.Where(i => !ClientIndicatedColumns.ContainsIgnoreCase(i.Name)).ToList();
@@ -570,7 +570,7 @@ namespace JQL
             var groupColumnsBuilder = dbQuery.Type == QueryType.AggregatedReadList ? new System.Text.StringBuilder(columnsToDo.Count * 25) : null;
             bool isFirst = true;
             
-            foreach (DbQueryColumn dbQueryColumn in columnsToDo)
+            foreach (JqlQueryColumn dbQueryColumn in columnsToDo)
             {
                 string cc = CompileDbQueryColumn(dbQueryColumn, targetTable);
                 if (!isFirst) 
@@ -639,14 +639,14 @@ namespace JQL
                     string subQueries = "";
                     foreach (string otmName in relationsToDo)
                     {
-                        DbRelation dbRelation = dbDialog.GetRelation(otmName);
+                        JqlRelation dbRelation = jqlModel.GetRelation(otmName);
                         if (dbRelation.RelationType == RelationType.ManyToMany && dbRelation.LinkingTargetTable is not null && dbRelation.LinkingColumnInManyToMany is not null)
                         {
                             string linkingTargetTable = dbRelation.LinkingTargetTable;
                             string linkingColumnInMTM = dbRelation.LinkingColumnInManyToMany;
-                            DbDialog dbDialogLinkingTargetTable = DbDialog.Load(dbDialog.GetDbDialogFolder(), dbDialog.DbConfName, linkingTargetTable);
-                            string linkingTargetTablePkName = dbDialogLinkingTargetTable.GetPk().Name;
-                            string[] hIds = dbDialogLinkingTargetTable.GetHumanIds().Split(",");
+                            JqlModel jqlModelLinkingTargetTable = JqlModel.Load(jqlModel.GetModelFolder(), jqlModel.DbConfName, linkingTargetTable);
+                            string linkingTargetTablePkName = jqlModelLinkingTargetTable.GetPk().Name;
+                            string[] hIds = jqlModelLinkingTargetTable.GetHumanIds().Split(",");
                             string cols = "";
                             string stm = dbIO.GetSqlTemplate(QueryType.ReadList, true);
                             string sep = "";
@@ -657,7 +657,7 @@ namespace JQL
                             }
 
 							//cols = $"[{linkingTargetTable}].[Id]," + cols;
-							DbColumn pk = dbDialog.GetPk();
+							JqlColumn pk = jqlModel.GetPk();
 							string left = $"LEFT OUTER JOIN [{linkingTargetTable}] ON [{linkingTargetTable}].[{linkingTargetTablePkName}]=[{dbRelation.RelationTable}].[{linkingColumnInMTM}]";
                             stm = stm.Replace("{Columns}", cols);
                             stm = stm.Replace("{TargetTable}", dbRelation.RelationTable);
@@ -674,7 +674,7 @@ namespace JQL
         }
         private string CompileRelationsToSelectForReadByKey()
         {
-            DbColumn pk = dbDialog.GetPk();
+            JqlColumn pk = jqlModel.GetPk();
             if (dbQuery.Relations is not null && dbQuery.Relations.Count > 0)
             {
                 List<string>? relationsToDo;
@@ -706,12 +706,12 @@ namespace JQL
                     string subQueries = "";
                     foreach (string otmName in relationsToDo)
                     {
-                        DbRelation dbRelation = dbDialog.GetRelation(otmName);
-                        string targetDbDialog = $"{dbDialog.DbConfName}.{dbRelation.RelationTable}.{dbRelation.ReadListQuery}";
+                        JqlRelation dbRelation = jqlModel.GetRelation(otmName);
+                        string targetJqlModel = $"{jqlModel.DbConfName}.{dbRelation.RelationTable}.{dbRelation.ReadListQuery}";
 						
-                        if (DbDialog.Exist(PowNetConfiguration.ServerPath, dbDialog.DbConfName, dbRelation.RelationTable))
+                        if (JqlModel.Exist(PowNetConfiguration.ServerPath, jqlModel.DbConfName, dbRelation.RelationTable))
                         {
-							ClientQuery subQuery = GetInstanceByQueryName(targetDbDialog, UserContext);
+							ClientQuery subQuery = GetInstanceByQueryName(targetJqlModel, UserContext);
 							subQuery.RelationsContainment = Containment.ExcludeAll;
 							subQuery.IsSubQuery = true;
 							subQuery.Where = new() { SimpleClauses = [new($"[{dbRelation.RelationTable}].[{dbRelation.RelationFkColumn}]=[TARGETTABLE].[{pk.Name}]")] };
@@ -813,7 +813,7 @@ namespace JQL
             {
                 if (dbQuery.Type == QueryType.AggregatedReadList)
                 {
-                    DbQueryColumn? c = dbQuery.Columns?.FirstOrDefault();
+                    JqlQueryColumn? c = dbQuery.Columns?.FirstOrDefault();
                     if (c != null) return orderTemplate.Replace("{Orders}", $"[{GetFinalObjectName()}].[{c.Name}]") ;
                     else
                     {
@@ -824,12 +824,12 @@ namespace JQL
                 }
                 else
                 {
-                    DbColumn pk = dbDialog.GetPk();
+                    JqlColumn pk = jqlModel.GetPk();
                     return orderTemplate.Replace("{Orders}", $"[{GetFinalObjectName()}].[{pk.Name}]") ;
                 }
             }
         }
-        private Tuple<string, string> CompileRefTo(string mainTable, string mainColumn, DbRefTo dbRefTo)
+        private Tuple<string, string> CompileRefTo(string mainTable, string mainColumn, JqlRefTo dbRefTo)
         {
             string sep = "";
             string columnsString = "";
@@ -841,7 +841,7 @@ namespace JQL
                 .Replace("{MainTable}", mainTable)
                 .Replace("{MainColumn}", mainColumn);
 
-            foreach (DbQueryColumn leftField in dbRefTo.Columns)
+            foreach (JqlQueryColumn leftField in dbRefTo.Columns)
             {
                 columnsString += $"{sep}{StringExtensions.NL}{StringExtensions.NT}[{targetTableAs}].[{leftField.Name}]{(leftField.As != null ? $" AS [{leftField.As}]" : "")}";
                 sep = ", ";
@@ -855,7 +855,7 @@ namespace JQL
             }
             return new Tuple<string, string>(columnsString, joinString);
         }
-        private string CompileDbQueryColumn(DbQueryColumn dbQueryColumn, string? targetTable)
+        private string CompileDbQueryColumn(JqlQueryColumn dbQueryColumn, string? targetTable)
         {
             string? s = (dbQueryColumn.Name is not null ? $"[{targetTable}].[{dbQueryColumn.Name}]" : $"({dbQueryColumn.Phrase})") ?? throw new PowNetException("NameAndPhraseCanNotBeUnknownTogether", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("Query", QueryFullName)
@@ -866,7 +866,7 @@ namespace JQL
             }
             return s;
         }
-        private string CompileWhere(Where? dbWhere, int indent = 1)
+        private string CompileWhere(JqlWhere? dbWhere, int indent = 1)
         {
             if (dbWhere is null) return "";
             string compiledWhere = "";
@@ -898,10 +898,10 @@ namespace JQL
 					string columnFullName = $"[{GetFinalObjectName()}].[{wcc.Name}]";
 					if (!nullOrNotComps.Contains(wcc.CompareOperator) && !inOrNotComps.Contains(wcc.CompareOperator))
                     {
-						DbColumn? dbColumn = dbDialog.Columns.FirstOrDefault(c => c.Name == wcc.Name);
+						JqlColumn? dbColumn = jqlModel.Columns.FirstOrDefault(c => c.Name == wcc.Name);
 						if (dbColumn != null)
 						{
-							DbParam dbParam = new(dbParamName, dbColumn.DbType) { Value = wcc.Value?.ToString() };
+							JqlParam dbParam = new(dbParamName, dbColumn.DbType) { Value = wcc.Value?.ToString() };
 							dbType = dbColumn.DbType;
 							dbQuery.FinalDbParameters.Add(ToDbParameter(dbParam));
 						}
@@ -928,7 +928,7 @@ namespace JQL
 
             if (dbWhere.ComplexClauses is not null)
             {
-                foreach (Where whereClauseComplex in dbWhere.ComplexClauses)
+                foreach (JqlWhere whereClauseComplex in dbWhere.ComplexClauses)
                 {
                     string subWhere = CompileWhere(whereClauseComplex, indent + 1);
                     if (subWhere.Trim() != "")
@@ -946,17 +946,17 @@ namespace JQL
         }
 
 
-        private List<DbParameter>? ToDbParameters(List<DbParam>? dbParams)
+        private List<DbParameter>? ToDbParameters(List<JqlParam>? dbParams)
         {
             if (dbParams is null) return null;
             List<DbParameter> dbParameters = [];
-            foreach (DbParam dbParam in dbParams)
+            foreach (JqlParam dbParam in dbParams)
             {
                 dbParameters.Add(ToDbParameter(dbParam));
             }
             return dbParameters;
         }
-        private DbParameter ToDbParameter(DbParam dbParam)
+        private DbParameter ToDbParameter(JqlParam dbParam)
         {
             try
             {
@@ -989,7 +989,7 @@ namespace JQL
         }
         private string GetFinalObjectName()
         {
-            return dbQuery.BaseObjectName is not null ? dbQuery.BaseObjectName : dbDialog.ObjectName;
+            return dbQuery.BaseObjectName is not null ? dbQuery.BaseObjectName : jqlModel.ObjectName;
         }
         private string GetFinalParamName(string columnName)
         {
@@ -1009,7 +1009,7 @@ namespace JQL
             if (dbParameters is not null) dbQuery.FinalDbParameters.AddRange(dbParameters);
             if (Params is not null)
             {
-                var listDbParams = new List<DbParam>(Params.Count); // Pre-size the list
+                var listDbParams = new List<JqlParam>(Params.Count); // Pre-size the list
                 string finalObjectName = GetFinalObjectName();
                 string subQuerySuffix = SubQueryIndex == null ? "" : "_" + SubQueryIndex;
                 
@@ -1018,7 +1018,7 @@ namespace JQL
                     string finalDbParamName = $"{finalObjectName}_{p.Name}{subQuerySuffix}";
                     if (dbQuery.FinalDbParameters.FirstOrDefault(pExist => pExist.ParameterName.EqualsIgnoreCase(finalDbParamName)) == null)
                     {
-                        listDbParams.Add(new DbParam(p.Name, "NVARCHAR") { Value = p.Value?.ToString() });
+                        listDbParams.Add(new JqlParam(p.Name, "NVARCHAR") { Value = p.Value?.ToString() });
                     }
 				}
 				List<DbParameter>? dbParametersAdditional = ToDbParameters(listDbParams);
@@ -1030,23 +1030,23 @@ namespace JQL
 			dbQuery.Params ??= [];
 			if (dbQuery.Columns is not null)
             {
-                foreach (DbQueryColumn dbQueryColumn in dbQuery.Columns)
+                foreach (JqlQueryColumn dbQueryColumn in dbQuery.Columns)
                 {
-                    DbParam? dbParam = dbQuery.Params.FirstOrDefault(i => i.Name == dbQueryColumn.Name);
+                    JqlParam? dbParam = dbQuery.Params.FirstOrDefault(i => i.Name == dbQueryColumn.Name);
                     if (dbParam is not null) continue;
                     ClientParam? clientParam = Params?.FirstOrDefault(i => i.Name == dbQueryColumn.Name);
 					object? v = clientParam?.Value?.ToString();
-					DbColumn? dbColumn = dbDialog.Columns.FirstOrDefault(i => i.Name == dbQueryColumn.Name);
+					JqlColumn? dbColumn = jqlModel.Columns.FirstOrDefault(i => i.Name == dbQueryColumn.Name);
                     if (dbColumn is null || dbQueryColumn.Name is null) continue;
-					dbQuery.Params.Add(new DbParam(dbQueryColumn.Name, dbColumn.DbType) { Value = v });
+					dbQuery.Params.Add(new JqlParam(dbQueryColumn.Name, dbColumn.DbType) { Value = v });
                 }
             }
-			foreach (DbParam dbp in dbQuery.Params)
+			foreach (JqlParam dbp in dbQuery.Params)
 			{
 				if (dbp.ValueSharp is not null) continue;
 				ClientParam? clientParam = Params?.FirstOrDefault(i => i.Name == dbp.Name);
 				object? vv = clientParam?.Value?.ToString();
-				DbColumn? dbColumn = dbDialog.Columns.FirstOrDefault(i => i.Name == dbp.Name);
+				JqlColumn? dbColumn = jqlModel.Columns.FirstOrDefault(i => i.Name == dbp.Name);
 				if (dbColumn is null) continue;
 
 				if (dbColumn.IsNumerical() && vv is string v && v == "") vv = null;
@@ -1059,7 +1059,7 @@ namespace JQL
 		private void CalculateSharpParams()
         {
             if (dbQuery.Params is null) return;
-            foreach (DbParam dbParam in dbQuery.Params)
+            foreach (JqlParam dbParam in dbQuery.Params)
             {
                 if (dbParam.ValueSharp is not null)
                 {
@@ -1072,7 +1072,7 @@ namespace JQL
                     else if (vs.StartsWith("#Resize"))
                     {
                         string[] s = vs.Replace("#Resize:", "").Trim().Split(',');
-                        DbParam? from = dbQuery.Params.FirstOrDefault(i => i.Name == s[0]);
+                        JqlParam? from = dbQuery.Params.FirstOrDefault(i => i.Name == s[0]);
                         if (from is not null && from.Value is not null)
                             obj = ((byte[])from.Value).ResizeImage(int.Parse(s[1]));
                     }
@@ -1203,7 +1203,7 @@ namespace JQL
 			{
 				// Dispose managed resources
 				dbIO?.Dispose();
-				dbDialog?.Dispose();
+				jqlModel?.Dispose();
 				dbQuery?.Dispose();
 			}
 

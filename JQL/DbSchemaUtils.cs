@@ -32,7 +32,7 @@ namespace JQL
             foreach (DbObject dbObject in dbObjects)
             {
                 DbTable dbTable = new(dbObject.Name);
-                foreach (DbColumn dbColumn in GetTableViewColumns(dbObject.Name)) dbTable.Columns.Add(dbColumn.ToDbColumnChangeTrackable());
+                foreach (JqlColumn dbColumn in GetTableViewColumns(dbObject.Name)) dbTable.Columns.Add(dbColumn.ToDbColumnChangeTrackable());
                 tables.Add(dbTable);
             }
             return tables;
@@ -92,17 +92,17 @@ namespace JQL
             }
             return objects;
         }
-        public List<DbColumn> GetTableViewColumns(string objectName)
+        public List<JqlColumn> GetTableViewColumns(string objectName)
         {
             if(objectName is null || objectName=="") throw new PowNetException("ObjectNameCanNotBeNullOrEmpty", System.Reflection.MethodBase.GetCurrentMethod()).GetEx();
 
 			string where = " WHERE ParentObjectName='" + objectName.ToString() + "'";
             DataTable dataTable = DbIOInstance.ToDataTables("SELECT * FROM Zz_SelectTablesViewsColumns" + where + " ORDER BY ViewOrder").FirstOrDefault().Value;
             DataTable dtFks = GetTableFks(objectName);
-            List<DbColumn> columns = [];
+            List<JqlColumn> columns = [];
             foreach (DataRow row in dataTable.Rows)
             {
-                DbColumn dbColumn = new((string)row["ColumnName"])
+                JqlColumn dbColumn = new((string)row["ColumnName"])
                 {
                     IsPrimaryKey = (bool)row["IsPrimaryKey"],
                     DbType = (string)row["ColumnType"],
@@ -130,17 +130,17 @@ namespace JQL
             string where = objectName is null ? "" : " WHERE TableName='" + objectName.ToString() + "'";
             return DbIOInstance.ToDataTables("SELECT * FROM Zz_SelectTablesFks" + where).FirstOrDefault().Value;
         }
-        public List<DbParam>? GetProceduresFunctionsParameters(string objectName)
+        public List<JqlParam>? GetProceduresFunctionsParameters(string objectName)
         {
             string where = objectName is null ? "" : " WHERE ObjectName='" + objectName.ToString() + "' AND Direction='Input'";
             DataTable dt = DbIOInstance.ToDataTables($"SELECT * FROM Zz_SelectProceduresFunctionsParameters {where} ORDER BY ViewOrder").FirstOrDefault().Value;
             if (dt.Rows.Count == 0) return null;
-            List<DbParam> dbParams = [];
+            List<JqlParam> dbParams = [];
             foreach (DataRow r in dt.Rows) 
             {
                 dbParams.Add
                 (
-                    new DbParam(r["ParameterName"].ToStringEmpty().Replace("@", ""), r["ParameterDataType"].ToStringEmpty().ToUpper())
+                    new JqlParam(r["ParameterName"].ToStringEmpty().Replace("@", ""), r["ParameterDataType"].ToStringEmpty().ToUpper())
                     {
                         Size = r["Size"].ToString() == "" ? null : r["Size"].ToString()?.ToUpper(),
                         AllowNull = false

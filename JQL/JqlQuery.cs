@@ -3,14 +3,14 @@ using System.Data.Common;
 
 namespace JQL
 {
-    public class DbQuery(string name, QueryType type) : IDisposable
+    public class JqlQuery(string name, QueryType type) : IDisposable
 	{
 		public string Name { set; get; } = name;
 		public QueryType Type { set; get; } = type;
 		public string? BaseObjectName { set; get; }
-        public List<DbQueryColumn>? Columns { set; get; }
-        public List<DbParam>? Params { set; get; }
-        public Where? Where { set; get; }
+        public List<JqlQueryColumn>? Columns { set; get; }
+        public List<JqlParam>? Params { set; get; }
+        public JqlWhere? Where { set; get; }
         public int? PaginationMaxSize { set; get; }
         public List<DbAggregation>? Aggregations { set; get; }
         public List<string>? Relations { set; get; }
@@ -41,7 +41,7 @@ namespace JQL
 			_disposed = true;
 		}
 
-		~DbQuery()
+		~JqlQuery()
 		{
 			Dispose(false);
 		}

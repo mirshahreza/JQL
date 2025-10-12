@@ -1,6 +1,6 @@
 ﻿namespace JQL
 {
-    public class DbColumnChangeTrackable : DbColumn
+    public class DbColumnChangeTrackable : JqlColumn
     {
 		public DbColumnChangeTrackable(string name) : base(name)
 		{

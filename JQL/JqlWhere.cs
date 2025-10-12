@@ -2,12 +2,12 @@
 
 namespace JQL
 {
-    public class Where
+    public class JqlWhere
     {
         public ConjunctiveOperator ConjunctiveOperator { set; get; } = ConjunctiveOperator.AND;
         public List<CompareClause>? CompareClauses { set; get; }
         public List<ComparePhrase>? SimpleClauses { set; get; }
-        public List<Where>? ComplexClauses { set; get; }
+        public List<JqlWhere>? ComplexClauses { set; get; }
     }
 
     public class CompareClause(string name, object? value = null)

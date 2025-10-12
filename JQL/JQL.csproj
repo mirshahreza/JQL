@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="PowNet" Version="2025.10.11.21" />
+    <PackageReference Include="PowNet" Version="2025.10.12.22" />
   </ItemGroup>
 
 </Project>

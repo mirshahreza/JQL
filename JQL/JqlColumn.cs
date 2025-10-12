@@ -3,7 +3,7 @@ using PowNet.Extensions;
 
 namespace JQL
 {
-    public class DbColumn(string name)
+    public class JqlColumn(string name)
 	{
 		public string Name { set; get; } = name;
 		public string DevNote { set; get; } = "";
@@ -15,7 +15,7 @@ namespace JQL
         public string? IdentityStep { set; get; }
         public bool AllowNull { set; get; }
         public string? DbDefault { set; get; }
-        public DbFk? Fk { set; get; }
+        public JqlFk? Fk { set; get; }
 		public bool? IsHumanId { set; get; }
 		public bool? IsSortable { set; get; }
 

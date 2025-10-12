@@ -8,10 +8,8 @@ using System.Data.Common;
 
 namespace JQL
 {
-    public abstract class DbIO : DbCommandExecutor
+    public abstract class DbIO(DatabaseConfiguration dbConf) : DbCommandExecutor(dbConf)
     {
-        public DbIO(DatabaseConfiguration dbConf) : base(dbConf) { }
-
 		public static new DbIO Instance(DatabaseConfiguration dbConf)
 		{
 			if (dbConf.ServerType == ServerType.MsSql) return new DbIOMsSql(dbConf);
@@ -49,7 +47,7 @@ namespace JQL
         public abstract string GetLeftJoinSqlTemplate();
         public abstract string GetTranBlock();
         public abstract string CompileWhereCompareClause(CompareClause whereCompareClause, string source, string columnFullName, string dbParamName, string dbType);
-		public abstract string DbParamToCSharpInputParam(DbParam dbParam);
+		public abstract string DbParamToCSharpInputParam(JqlParam dbParam);
 	}
 
     public class DbIOMsSql(DatabaseConfiguration dbInfo) : DbIO(dbInfo)
@@ -268,7 +266,7 @@ COMMIT TRAN {TranName};
             return "";
         }
 
-        public override string DbParamToCSharpInputParam(DbParam dbParam)
+        public override string DbParamToCSharpInputParam(JqlParam dbParam)
         {
             // cover char,nchar,varchar,nvarchar,text,ntext, uniqueidentifier
             if (dbParam.DbType.Contains("char") || dbParam.DbType.Contains("text") || dbParam.DbType.Contains("uniqueidentifier"))

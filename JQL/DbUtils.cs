@@ -5,7 +5,7 @@ namespace JQL
 	public static class DbUtils
     {
         
-        public static bool ColumnIsForDisplay(this DbColumn dbColumn)
+        public static bool ColumnIsForDisplay(this JqlColumn dbColumn)
         {
             if (dbColumn.Name.EqualsIgnoreCase("Name")) return true;
             if (dbColumn.Name.EqualsIgnoreCase("Title")) return true;
@@ -17,7 +17,7 @@ namespace JQL
 
             return false;
         }
-		public static bool ColumnIsSortable(this DbColumn dbColumn)
+		public static bool ColumnIsSortable(this JqlColumn dbColumn)
 		{
             if (dbColumn.Name.EqualsIgnoreCase("Name")) return true;
             if (dbColumn.Name.EqualsIgnoreCase("Title")) return true;
@@ -26,12 +26,12 @@ namespace JQL
 
             return false;
 		}
-		public static bool ColumnIsForReadByKey(this DbColumn dbColumn)
+		public static bool ColumnIsForReadByKey(this JqlColumn dbColumn)
         {
             // todo : implemention required
             return true;
         }
-        public static bool ColumnIsForReadList(this DbColumn dbColumn)
+        public static bool ColumnIsForReadList(this JqlColumn dbColumn)
         {
             if (dbColumn.Name.EndsWith("_FileBody")) return false;
             if (dbColumn.Name.EndsWith("_FileSize")) return false;
@@ -41,7 +41,7 @@ namespace JQL
 			//if (dbColumn.IsNumerical()) return false;
             return true;
         }
-        public static bool ColumnIsForAggregatedReadList(this DbColumn dbColumn)
+        public static bool ColumnIsForAggregatedReadList(this JqlColumn dbColumn)
         {
             if (dbColumn.IsPrimaryKey) return false;
             if (dbColumn.Name.ContainsIgnoreCase("_File")) return false;
@@ -52,7 +52,7 @@ namespace JQL
 			if (!dbColumn.IsNumerical() && (dbColumn.Size is not null && int.Parse(dbColumn.Size) > 256)) return false;
             return true;
         }
-        public static bool ColumnIsForDelete(this DbColumn dbColumn)
+        public static bool ColumnIsForDelete(this JqlColumn dbColumn)
         {
 			if (dbColumn.Name.ToLower().EndsWith("_xs")) return false;
 			if (dbColumn.Name.ContainsIgnoreCase("xml")) return false;
@@ -61,13 +61,13 @@ namespace JQL
 			if (dbColumn.Name.ContainsIgnoreCase("password")) return false;
             return true;
         }
-        public static bool ColumnIsForCreate(this DbColumn dbColumn)
+        public static bool ColumnIsForCreate(this JqlColumn dbColumn)
         {
             if (dbColumn.IsIdentity || dbColumn.DbDefault != null) return false;
 			if (dbColumn.Name.ContainsIgnoreCase("password")) return false;
 			return true;
         }
-        public static bool ColumnIsForUpdateByKey(this DbColumn dbColumn)
+        public static bool ColumnIsForUpdateByKey(this JqlColumn dbColumn)
         {
             if (LibSV.CreatedFields.ContainsIgnoreCase(dbColumn.Name)) return false;
 			if (dbColumn.Name.ContainsIgnoreCase("password")) return false;
@@ -91,14 +91,14 @@ namespace JQL
             return $"{dbT}({size})";
         }
 
-        public static bool ColumnsAreFileCentric(List<DbColumn> dbColumns)
+        public static bool ColumnsAreFileCentric(List<JqlColumn> dbColumns)
         {
-            DbColumn? dbColumn = dbColumns.FirstOrDefault(i => i.DbType.EqualsIgnoreCase("IMAGE") || i.DbType.EqualsIgnoreCase("BINARY"));
+            JqlColumn? dbColumn = dbColumns.FirstOrDefault(i => i.DbType.EqualsIgnoreCase("IMAGE") || i.DbType.EqualsIgnoreCase("BINARY"));
             if (dbColumn is not null && dbColumns.Count < 8) return true;
             return false;
         }
 
-		public static List<DbColumn> RemoveAuditingColumns(this List<DbColumn> dbColumns)
+		public static List<JqlColumn> RemoveAuditingColumns(this List<JqlColumn> dbColumns)
 		{
             return dbColumns.Where(i => !LibSV.AuditingFields.ContainsIgnoreCase(i.Name)).ToList();
         }

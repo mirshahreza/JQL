@@ -1,6 +1,6 @@
 ﻿namespace JQL
 {
-    public class DbFk(string fkName, string targetTable, string targetColumn)
+    public class JqlFk(string fkName, string targetTable, string targetColumn)
 	{
 		public string FkName { set; get; } = fkName;
 		public string TargetTable { set; get; } = targetTable;
