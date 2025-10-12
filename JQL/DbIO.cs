@@ -54,36 +54,6 @@ namespace JQL
 
     public class DbIOMsSql(DatabaseConfiguration dbInfo) : DbIO(dbInfo)
     {
-        public override DbConnection CreateConnection()
-        {
-            DbConnection dbConnection = new SqlConnection(DbConf.ConnectionString);
-            dbConnection.Open();
-            return dbConnection;
-        }
-
-        public override DataAdapter CreateDataAdapter(DbCommand dbCommand)
-        {
-            return new SqlDataAdapter((SqlCommand)dbCommand);
-        }
-
-        public override DbCommand CreateDbCommand(string commandText, DbConnection dbConnection, List<DbParameter>? dbParameters = null)
-        {
-            List<string> paramsInSql = commandText.ExtractSqlParameters();
-            List<string> notExistParams = paramsInSql.Where(i => dbParameters?.FirstOrDefault(p => p.ParameterName.EqualsIgnoreCase(i)) == null).ToList();
-            if (notExistParams.Count > 0)
-            {
-                if (dbParameters is null) dbParameters = [];
-                foreach (string p in notExistParams)
-                {
-                    if (!p.EqualsIgnoreCase("InsertedTable") && !p.EqualsIgnoreCase("MasterId"))
-                        dbParameters.Add(CreateParameter(p, "NVARCHAR", 4000, null));
-                }
-            }
-            SqlCommand sqlCommand = new(commandText, (SqlConnection)dbConnection);
-            if (dbParameters is not null && dbParameters.Count > 0) sqlCommand.Parameters.AddRange(dbParameters.ToArray());
-            return sqlCommand;
-        }
-
         public override DbParameter CreateParameter(string columnName, string columnType, int? columnSize = null, object? value = null)
         {
             SqlParameter op = new()

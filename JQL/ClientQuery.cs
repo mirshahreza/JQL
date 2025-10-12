@@ -1051,7 +1051,7 @@ namespace JQL
 
 				if (dbColumn.IsNumerical() && vv is string v && v == "") vv = null;
 				if (dbColumn.DbType.EqualsIgnoreCase("image") && vv is string v1 && v1 == "") vv = null;
-				if (dbColumn.DbType.EqualsIgnoreCase("image") && vv is not null) vv = Convert.FromBase64String((string)vv);
+                if (dbColumn.DbType.EqualsIgnoreCase("image") && vv is not null) vv = ((string)vv).ToByteArray();
 
 				dbp.Value = vv;
 			}
