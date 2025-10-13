@@ -32,7 +32,7 @@ namespace JQL
             foreach (DbObject dbObject in dbObjects)
             {
                 DbTable dbTable = new(dbObject.Name);
-                foreach (JqlColumn dbColumn in GetTableViewColumns(dbObject.Name)) dbTable.Columns.Add(dbColumn.ToDbColumnChangeTrackable());
+                foreach (JqlColumn dbColumn in GetTableViewColumns(dbObject.Name)) dbTable.Columns.Add(dbColumn.ToChangeTrackable());
                 tables.Add(dbTable);
             }
             return tables;

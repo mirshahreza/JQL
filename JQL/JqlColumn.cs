@@ -102,7 +102,7 @@ namespace JQL
             return false;
         }
 
-        public JqlColumnChangeTrackable ToDbColumnChangeTrackable()
+        public JqlColumnChangeTrackable ToChangeTrackable()
         {
             return new JqlColumnChangeTrackable(this.Name)
             {
