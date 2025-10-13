@@ -1,4 +1,5 @@
 ﻿using PowNet.Common;
+using System;
 using PowNet.Extensions;
 
 namespace JQL
@@ -43,7 +44,7 @@ namespace JQL
 			if (DbType.ContainsIgnoreCase("float")) return true;
 			return false;
 		}
-		public bool IsLargContent()
+		public bool IsLargeContent()
 		{
 			if (DbType.EqualsIgnoreCase("text")) return true;
 			if (DbType.EqualsIgnoreCase("ntext")) return true;
@@ -52,6 +53,7 @@ namespace JQL
 
 			return false;
 		}
+
 		public bool IsDateTime()
         {
             return DbType.EqualsIgnoreCase("datetime");

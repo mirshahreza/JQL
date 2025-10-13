@@ -3,6 +3,8 @@ using PowNet.Extensions;
 using PowNet.Services;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System;
+using System.Linq;
 
 namespace JQL
 {
@@ -79,6 +81,11 @@ namespace JQL
 					.AddParam("DbRelation", relationName)
 					.GetEx();
 		}
+
+		public JqlRelation? TryGetRelation(string relationName)
+		{
+			return Relations?.FirstOrDefault(i => i.RelationName.Equals(relationName, StringComparison.OrdinalIgnoreCase));
+		}
 		public JqlColumn GetColumn(string columnName)
         {
             JqlColumn? dbColumn = Columns?.FirstOrDefault(i => i.Name == columnName);
@@ -120,6 +127,14 @@ namespace JQL
 		{
 			return Columns.Where(i => i.IsHumanId == true).ToList();
 		}
+
+		public List<string> GetHumanIdsList()
+		{
+			return Columns.Where(i => i.IsHumanId == true).Select(i => i.Name).ToList();
+		}
+
+		[Obsolete("Use GetHumanIdsList() instead.")]
+		public List<JqlColumn> GetHumanIdColumns() => GetHumanIdsOrig();
 		public JqlColumn? TryGetTreeParentColumn() => Columns.FirstOrDefault(i => i.Fk != null && i.Fk.TargetTable == ObjectName);
 		public string GetTreeParentColumnName()
 		{

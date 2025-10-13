@@ -13,12 +13,12 @@ namespace JQL
 		private DatabaseConfiguration DbConf { init; get; }
 		private DbSchemaUtils DbSchemaUtils { init; get; }
 		
-        private DbIO _dbIo;
-        public DbIO DbIOInstance
+        private JqlRun _dbIo;
+        public JqlRun DbIOInstance
         {
             get
             {
-                return _dbIo ??= DbIO.Instance(DbConf);
+                return _dbIo ??= JqlRun.Instance(DbConf);
             }
         }
 
@@ -28,7 +28,7 @@ namespace JQL
             DbConfName = dbConfName;
             DbConf = DatabaseConfiguration.FromSettings(DbConfName);
 			DbSchemaUtils = new DbSchemaUtils(DbConfName);
-			_dbIo = DbIO.Instance(DbConf);
+			_dbIo = JqlRun.Instance(DbConf);
         }
 
         public void CreateNewUpdateByKey(string objectName, string readByKeyApiName, List<string> columnsToUpdate, string partialUpdateApiName, string byColumnName, string onColumnName, string historyTableName)

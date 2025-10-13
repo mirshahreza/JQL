@@ -8,9 +8,9 @@ using System.Data.Common;
 
 namespace JQL
 {
-    public abstract class DbIO(DatabaseConfiguration dbConf) : DbCommandExecutor(dbConf)
+    public abstract class JqlRun(DatabaseConfiguration dbConf) : DbCommandExecutor(dbConf)
     {
-		public static new DbIO Instance(DatabaseConfiguration dbConf)
+		public static new JqlRun Instance(DatabaseConfiguration dbConf)
 		{
 			if (dbConf.ServerType == ServerType.MsSql) return new DbIOMsSql(dbConf);
 			throw new PowNetException($"DbServerTypeNotImplementedYet", System.Reflection.MethodBase.GetCurrentMethod())
@@ -18,7 +18,7 @@ namespace JQL
 				.GetEx();
 		}
 
-		public static new DbIO Instance(string connectionName = "DefaultConnection")
+		public static new JqlRun Instance(string connectionName = "DefaultConnection")
 		{
             var dbConf = DatabaseConfiguration.FromSettings(connectionName);
 			if (dbConf.ServerType == ServerType.MsSql) return new DbIOMsSql(dbConf);
@@ -26,17 +26,6 @@ namespace JQL
 				.AddParam("ServerType", dbConf.ServerType)
 				.GetEx();
 		}
-
-        // Backward-compatibility shim for legacy call sites
-        public void ToNoneQuery(string commandString, List<DbParameter>? dbParameters = null)
-        {
-            _ = ToNonQuery(commandString, dbParameters);
-        }
-        // Note: prefer using ExecuteNonQueryAsync returning Task<int>. This keeps old signature.
-        public void ToNoneQueryAsync(string commandString, List<DbParameter>? dbParameters = null)
-        {
-            _ = ToNonQueryAsync(commandString, dbParameters);
-        }
 
         public static new bool TestConnection(DatabaseConfiguration dbConf) => DbCommandExecutor.TestConnection(dbConf);
 
@@ -50,7 +39,7 @@ namespace JQL
 		public abstract string DbParamToCSharpInputParam(JqlParam dbParam);
 	}
 
-    public class DbIOMsSql(DatabaseConfiguration dbInfo) : DbIO(dbInfo)
+    public class DbIOMsSql(DatabaseConfiguration dbInfo) : JqlRun(dbInfo)
     {
         public override DbParameter CreateParameter(string columnName, string columnType, int? columnSize = null, object? value = null)
         {

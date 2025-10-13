@@ -1,4 +1,4 @@
-﻿using PowNet.Common;
+using PowNet.Common;
 using System.Text.Json.Serialization;
 
 namespace JQL
@@ -29,7 +29,7 @@ namespace JQL
 
         public RelationUiWidget? RelationUiWidget { set; get; }
 
-        public JqlRelation(string relationTable, string relationPkColumn, string relationFkColumn)
+		public JqlRelation(string relationTable, string relationPkColumn, string relationFkColumn)
         {
             RelationTable = relationTable;
             RelationPkColumn = relationPkColumn;

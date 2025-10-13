@@ -9,12 +9,12 @@ namespace JQL
     {
         public string DbInfoName { init; get; }
         private DatabaseConfiguration DbInfo { init; get; }
-        private DbIO dbIO;
-        public DbIO DbIOInstance
+        private JqlRun dbIO;
+        public JqlRun DbIOInstance
         {
             get
             {
-                dbIO ??= DbIO.Instance(DbInfo);
+                dbIO ??= JqlRun.Instance(DbInfo);
                 return dbIO;
             }
         }
@@ -22,7 +22,7 @@ namespace JQL
         {
             DbInfoName = dbInfoName;
             DbInfo = DatabaseConfiguration.FromSettings(DbInfoName);
-            dbIO = DbIO.Instance(DbInfo);
+            dbIO = JqlRun.Instance(DbInfo);
         }
 
         public List<DbTable> GetTables()
@@ -170,7 +170,7 @@ namespace JQL
                     }
                     else if (st.Equals("u"))
                     {
-                        if (!f.InitialName.IsNullOrEmpty() && f.InitialName != f.Name) DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_RenameColumn '{dbTable.Name}','{f.InitialName}','{f.Name}';");
+                        if (!f.InitialName.IsNullOrEmpty() && f.InitialName != f.Name) DbIOInstance.ToNonQuery($"EXEC dbo.Zz_RenameColumn '{dbTable.Name}','{f.InitialName}','{f.Name}';");
                         AlterColumn(dbTable.Name, f.Name, JqlUtils.GetTypeSize(f.DbType, f.Size), f.AllowNull, f.DbDefault);
                         if (f.Fk is not null) CreateOrAlterFk(dbTable.Name, f);
                     }
@@ -191,7 +191,7 @@ namespace JQL
         {
             try
             {
-                DbIOInstance.ToNoneQuery(objectScript);
+                DbIOInstance.ToNonQuery(objectScript);
             }
             catch (Exception ex)
             {
@@ -210,77 +210,77 @@ namespace JQL
             {
                 fn = $"EXEC dbo.Zz_CreateTableIdentity '{dbTable.Name}','{pk.Name}','{pk.DbType}',{pk.IdentityStart.FixNull("1")},{pk.IdentityStep.FixNull("1")},1;";
             }
-            DbIOInstance.ToNoneQuery(fn);
+            DbIOInstance.ToNonQuery(fn);
         }
         public void TruncateTable(string tableName)
         {
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_TruncateTable '{tableName}';");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_TruncateTable '{tableName}';");
         }
         public void DropTable(string tableName)
         {
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_DropTable '{tableName}';");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_DropTable '{tableName}';");
         }
         public void RenameTable(string tableName,string newTableName)
         {
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_RenameTable '{tableName}','{newTableName}';");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_RenameTable '{tableName}','{newTableName}';");
         }
 
         public void DropView(string viewName)
         {
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_DropView '{viewName}';");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_DropView '{viewName}';");
         }
 
         public void DropProcedure(string procedureName)
         {
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_DropProcedure '{procedureName}';");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_DropProcedure '{procedureName}';");
         }
 
         public void DropFunction(string functionName)
         {
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_DropFunction '{functionName}';");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_DropFunction '{functionName}';");
         }
 
         public void CreateEmptyView(string viewName)
         {
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_CreateEmptyView '{viewName}';");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_CreateEmptyView '{viewName}';");
         }
 
         public void CreateEmptyProcedure(string procedureName)
         {
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_CreateEmptyProcedure '{procedureName}';");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_CreateEmptyProcedure '{procedureName}';");
         }
 
         public void CreateEmptyTableFunction(string tableFunctionName)
         {
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_CreateEmptyTableFunction '{tableFunctionName}';");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_CreateEmptyTableFunction '{tableFunctionName}';");
         }
 
         public void CreateEmptyScalarFunction(string scalarFunctionName)
         {
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_CreateEmptyScalarFunction '{scalarFunctionName}';");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_CreateEmptyScalarFunction '{scalarFunctionName}';");
         }
         
         public void CreateColumn(string tableName, string columnName, string columnTypeSize, bool? allowNull = true)
         {
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_CreateColumn '{tableName}','{columnName}','{columnTypeSize}',{(allowNull == true ? "1" : "0")};");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_CreateColumn '{tableName}','{columnName}','{columnTypeSize}',{(allowNull == true ? "1" : "0")};");
         }
         private void AlterColumn(string tableName, string columnName, string columnTypeSize, bool? allowNull = true, string? DefaultExp = null)
         {
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_AlterColumn '{tableName}','{columnName}','{columnTypeSize}',{(allowNull == true ? "1" : "0")},N'{(DefaultExp is null ? "" : DefaultExp)}';");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_AlterColumn '{tableName}','{columnName}','{columnTypeSize}',{(allowNull == true ? "1" : "0")},N'{(DefaultExp is null ? "" : DefaultExp)}';");
         }
         private void DropColumn(string tableName, string columnName)
         {
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_DropColumn '{tableName}','{columnName}';");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_DropColumn '{tableName}','{columnName}';");
         }
         private void CreateOrAlterFk(string tableName, JqlColumnChangeTrackable tableColumn)
         {
             if (tableColumn.Fk?.FkName == "")
                 tableColumn.Fk.FkName = $"{tableName}_{tableColumn.Name}_{tableColumn.Fk.TargetTable}_{tableColumn.Fk.TargetColumn}";
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_CreateOrAlterFk '{tableColumn.Fk?.FkName}','{tableName}','{tableColumn.Name}','{tableColumn.Fk?.TargetTable}','{tableColumn.Fk?.TargetColumn}',{(tableColumn.Fk?.EnforceRelation == true ? "1" : "0")};");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_CreateOrAlterFk '{tableColumn.Fk?.FkName}','{tableName}','{tableColumn.Name}','{tableColumn.Fk?.TargetTable}','{tableColumn.Fk?.TargetColumn}',{(tableColumn.Fk?.EnforceRelation == true ? "1" : "0")};");
         }
         public void DropFk(string tableName, string fkName)
         {
-            DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_DropFk '{fkName}','{tableName}'");
+            DbIOInstance.ToNonQuery($"EXEC dbo.Zz_DropFk '{fkName}','{tableName}'");
         }
 
 

@@ -32,7 +32,7 @@ namespace JQL
 
         private Hashtable? UserContext { get; set; }
 
-        private DbIO dbIO;
+        private JqlRun dbIO;
         private JqlModel jqlModel;
         private JqlQuery dbQuery;
 		
@@ -92,7 +92,7 @@ namespace JQL
                     .AddParam("QueryFullName", QueryFullName)
                     .GetEx();
 			dbQuery = dbq;
-            dbIO = DbIO.Instance(DatabaseConfiguration.FromSettings(queryFullNameParts[0]));
+            dbIO = JqlRun.Instance(DatabaseConfiguration.FromSettings(queryFullNameParts[0]));
         }
         #endregion
 
@@ -1159,11 +1159,11 @@ namespace JQL
 						break;
 					case QueryType.UpdateByKey:
 						s = ReplaceDollarValues(GetUpdateByKeyStatement());
-						dbIO.ToNoneQuery(s, dbQuery.FinalDbParameters);
+                        dbIO.ToNonQuery(s, dbQuery.FinalDbParameters);
 						break;
 					case QueryType.DeleteByKey:
 						s = ReplaceDollarValues(GetDeleteByKeyStatement());
-						dbIO.ToNoneQuery(s, dbQuery.FinalDbParameters);
+                        dbIO.ToNonQuery(s, dbQuery.FinalDbParameters);
 						break;
 					case QueryType.Delete:
 						break;

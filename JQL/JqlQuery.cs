@@ -16,6 +16,10 @@ namespace JQL
         public List<string>? Relations { set; get; }
         public string? HistoryTable { set; get; }
 
+        public bool HasAggregations => Aggregations is not null && Aggregations.Count > 0;
+        public bool HasRelations => Relations is not null && Relations.Count > 0;
+        public bool HasParams => Params is not null && Params.Count > 0;
+
         public List<DbParameter> FinalDbParameters = [];
 
 		private bool _disposed = false;
