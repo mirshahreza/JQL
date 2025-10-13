@@ -24,15 +24,8 @@ namespace JQL
         };
         
         // Cached sets for external DbUtils fields for O(1) lookups
-        private static readonly HashSet<string> CreatedFieldsSet =
-                CreatedFields is null
-                ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                : new HashSet<string>(CreatedFields, StringComparer.OrdinalIgnoreCase);
-
-        private static readonly HashSet<string> AuditingFieldsSet =
-            AuditingFields is null
-                ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                : new HashSet<string>(AuditingFields, StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> CreatedFieldsSet;
+        private static readonly HashSet<string> AuditingFieldsSet;
         
         public static bool ColumnIsForDisplay(this JqlColumn dbColumn)
         {
@@ -135,6 +128,13 @@ namespace JQL
         public static readonly string ReadByKey = "ReadByKey";
         public static readonly string Update = "Update";
         public static readonly string AsStr = " AS ";
+
+        static JqlUtils()
+        {
+            // Initialize caches after static lists are initialized
+            CreatedFieldsSet = new HashSet<string>(CreatedFields, StringComparer.OrdinalIgnoreCase);
+            AuditingFieldsSet = new HashSet<string>(AuditingFields, StringComparer.OrdinalIgnoreCase);
+        }
 
     }
 }
