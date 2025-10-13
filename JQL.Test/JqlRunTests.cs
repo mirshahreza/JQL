@@ -1,7 +1,4 @@
-using System;
 using Xunit;
-using JQL;
-using PowNet.Common;
 using PowNet.Configuration;
 
 namespace JQL.Test
