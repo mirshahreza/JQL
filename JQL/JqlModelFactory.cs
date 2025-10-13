@@ -140,7 +140,7 @@ namespace JQL
             if (masterUpdateQ is null) return;
 
             JqlColumn pk = jqlModel.GetPk();
-            DbTable dbTable = new(historyTableName);
+            DbTableChangeTrackable dbTable = new(historyTableName);
 
             dbTable.Columns.Add(SetAndGetColumnState(historyTable, new("FakeId") { DbType = "INT", AllowNull = false, IsIdentity = true, IdentityStart = "1", IdentityStep = "1", IsPrimaryKey = true }));
             dbTable.Columns.Add(SetAndGetColumnState(historyTable, new("Id") { DbType = pk.DbType, AllowNull = false, Fk = new("", objectName, pk.Name) }));

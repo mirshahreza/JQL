@@ -150,7 +150,7 @@ namespace JQL
             return dbParams;
         }
 
-        public void CreateOrAlterTable(DbTable dbTable)
+        public void CreateOrAlterTable(DbTableChangeTrackable dbTable)
         {
             JqlColumnChangeTrackable? pkColumn = dbTable.Columns.FirstOrDefault(i => i.IsPrimaryKey == true) ?? throw new PowNetException("PrimaryKeyIsNotExist", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("TableName", dbTable.Name)
@@ -199,7 +199,7 @@ namespace JQL
             }
         }
 
-        private void CreateMinTableIfNotExist(DbTable dbTable, JqlColumnChangeTrackable pk)
+        private void CreateMinTableIfNotExist(DbTableChangeTrackable dbTable, JqlColumnChangeTrackable pk)
         {
             string fn;
             if (pk.DbType.EqualsIgnoreCase("GUID") || pk.DbType.EqualsIgnoreCase("UNIQUEIDENTIFIER"))
