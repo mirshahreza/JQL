@@ -50,7 +50,7 @@ namespace JQL
                 if (byDbCol is null)
                 {
                     dbSchemaUtils.CreateColumn(objectName, byColumnName, "INT", true);
-                    byDbCol = new JqlColumn(byColumnName) { DbType = "INT", AllowNull = true, UiProps = new() { } };
+                    byDbCol = new JqlColumn(byColumnName) { DbType = "INT", AllowNull = true };
                     jqlModel.Columns.Add(byDbCol);
                 }
                 if (!finalColsForNewUpdateByKeyApi.Contains(byColumnName)) finalColsForNewUpdateByKeyApi.Add(byColumnName);
@@ -62,7 +62,7 @@ namespace JQL
                 if (onDbCol is null)
                 {
                     dbSchemaUtils.CreateColumn(objectName, onColumnName, "DATETIME", true);
-                    onDbCol = new JqlColumn(onColumnName) { DbType = "DATETIME", AllowNull = true, UiProps = new() { } };
+                    onDbCol = new JqlColumn(onColumnName) { DbType = "DATETIME", AllowNull = true };
                     jqlModel.Columns.Add(onDbCol);
                 }
 				if (!finalColsForNewUpdateByKeyApi.Contains(onColumnName)) finalColsForNewUpdateByKeyApi.Add(onColumnName);
@@ -95,9 +95,11 @@ namespace JQL
 				jqlModel.DbQueries.Add(readByKeyQ);
 				DynamicCodeService.CreateMethod($"{DbConfName}.{objectName}", readByKeyApiName);
 			}
+
 			readByKeyQ.Columns ??= [];
-            if(!readByKeyApiName.EqualsIgnoreCase(LibSV.ReadByKey))
+            if(!readByKeyApiName.EqualsIgnoreCase(JqlUtils.ReadByKey))
                 readByKeyQ.Columns.RemoveAll(i => !i.Name.EqualsIgnoreCase(pkCol.Name));
+
 			foreach (string s in columnsToUpdate)
 				if (readByKeyQ.Columns.FirstOrDefault(i => i.Name.EqualsIgnoreCase(s)) is null) 
                     readByKeyQ.Columns.Add(new JqlQueryColumn() { Name = s });
@@ -117,10 +119,8 @@ namespace JQL
             // add related csharp method
 
             DynamicCodeService.Refresh();
-            if (!DynamicCodeService.MethodExist($"{DbConfName}.{objectName}.{partialUpdateApiName}")) 
-            {
+            if (!DynamicCodeService.MethodExist($"{DbConfName}.{objectName}.{partialUpdateApiName}"))
                 DynamicCodeService.CreateMethod($"{DbConfName}.{objectName}", partialUpdateApiName);
-            }
 
             // create log table and related server objects
             if (!historyTableName.IsNullOrEmpty())
@@ -144,8 +144,8 @@ namespace JQL
 
             dbTable.Columns.Add(SetAndGetColumnState(historyTable, new("FakeId") { DbType = "INT", AllowNull = false, IsIdentity = true, IdentityStart = "1", IdentityStep = "1", IsPrimaryKey = true }));
             dbTable.Columns.Add(SetAndGetColumnState(historyTable, new("Id") { DbType = pk.DbType, AllowNull = false, Fk = new("", objectName, pk.Name) }));
-            dbTable.Columns.Add(SetAndGetColumnState(historyTable, new(LibSV.CreatedBy) { DbType = "INT", Size = null, AllowNull = false }));
-            dbTable.Columns.Add(SetAndGetColumnState(historyTable, new(LibSV.CreatedOn) { DbType = "DATETIME", AllowNull = false }));
+            dbTable.Columns.Add(SetAndGetColumnState(historyTable, new(JqlUtils.CreatedBy) { DbType = "INT", Size = null, AllowNull = false }));
+            dbTable.Columns.Add(SetAndGetColumnState(historyTable, new(JqlUtils.CreatedOn) { DbType = "DATETIME", AllowNull = false }));
 
             if (masterUpdateQ.Columns is null) return;
             foreach (JqlQueryColumn dbQueryColumn in masterUpdateQ.Columns)
@@ -164,23 +164,14 @@ namespace JQL
             CreateServerObjectsFor(historyTable, false);
         }
 
-        private DbColumnChangeTrackable SetAndGetColumnState(DbTable? dbObject, DbColumnChangeTrackable col)
-        {
-            if (dbObject is null || dbObject.Columns.FirstOrDefault(i => i.Name.EqualsIgnoreCase(col.Name)) is null)
-            {
-                col.State = "n";
-            }
-            else
-            {
-                col.State = "u";
-            }
-            return col;
-        }
-
 		public void CreateQuery(string objectName, string methodType, string methodName)
 		{
-			JqlModel jqlModel = JqlModel.Load(JqlModelFolderPath, DbConfName, objectName);
-			QueryType queryType = Enum.Parse<QueryType>(methodType);
+            JqlModel jqlModel = JqlModel.Load(JqlModelFolderPath, DbConfName, objectName);
+            if (!Enum.TryParse<QueryType>(methodType, ignoreCase: true, out var queryType))
+                throw new PowNetException("QueryTypeNotSupported", System.Reflection.MethodBase.GetCurrentMethod())
+                    .AddParam("MethodType", methodType)
+                    .GetEx();
+
 			JqlQuery dbQ = queryType switch
 			{
 				QueryType.Create => GetCreateQuery(jqlModel),
@@ -192,6 +183,7 @@ namespace JQL
 										.AddParam("QueryType", queryType)
                                         .GetEx(),
 			};
+
             dbQ.Name = methodName;
 			jqlModel.DbQueries.Add(dbQ);
 
@@ -275,7 +267,6 @@ namespace JQL
                 {
                     dbColumn.IsHumanId = dbColumn.ColumnIsForDisplay() ? true : null;
                     dbColumn.IsSortable = dbColumn.ColumnIsSortable() ? true : null;
-                    SetUiProps(dbColumn);
                 }
 
                 jqlModel.Columns.AddRange(dbColumns);
@@ -337,16 +328,10 @@ namespace JQL
             if (dbDialog == null) return;
             List<JqlColumn> dbColumns = DbSchemaUtils.GetTableViewColumns(objectName);
 
-
-            // add new column
             foreach (JqlColumn dbColumn in dbColumns)
             {
                 var lst = dbDialog.Columns.Where(i => i.Name == dbColumn.Name).ToList();
-                if (lst.Count == 0)
-                {
-                    SetUiProps(dbColumn);
-                    dbDialog.Columns.Add(dbColumn);
-                }
+                if (lst.Count == 0) dbDialog.Columns.Add(dbColumn);
             }
 
             List<JqlColumn> toRemove = [];
@@ -362,16 +347,12 @@ namespace JQL
             foreach (JqlColumn dbColumn in toRemove)
             {
                 dbDialog.Columns.Remove(dbColumn);
-
                 foreach (JqlQuery dbQuery in dbDialog.DbQueries)
                 {
                     if (dbQuery.Columns?.Count > 0)
                     {
                         JqlQueryColumn? dbQueryColumn = dbQuery.Columns.FirstOrDefault(i => i.Name == dbColumn.Name);
-                        if (dbQueryColumn != null)
-                        {
-                            dbQuery.Columns.Remove(dbQueryColumn);
-                        }
+                        if (dbQueryColumn != null) dbQuery.Columns.Remove(dbQueryColumn);
                     }
                 }
             }
@@ -436,7 +417,7 @@ namespace JQL
 			List<JqlParam>? dbParams = DbSchemaUtils.GetProceduresFunctionsParameters(objectName);
 			if (dbParams != null)
 			{
-				dbParams = dbParams.Where(i => i.Name != "Returns").ToList();
+				dbParams = dbParams.Where(i => !i.Name.EqualsIgnoreCase("Returns")).ToList();
 				if (dbParams.Count > 0)
 				{
 					foreach (JqlParam dbParam in dbParams)
@@ -467,7 +448,7 @@ namespace JQL
 
         public static List<JqlRelation>? GetRelations(JqlModel dbDialog,DbSchemaUtils dbSchemaUtils)
         {
-            if (dbDialog.ObjectName.EndsWith("BaseInfo")) return null;
+            if (dbDialog.ObjectName.EndsWithIgnoreCase("BaseInfo")) return null;
             List<JqlRelation> list = [];
             List<DbTable> tables = dbSchemaUtils.GetTables();
             foreach (DbTable table in tables)
@@ -476,7 +457,7 @@ namespace JQL
                 JqlColumn? tablePk = dbColumns.FirstOrDefault(i => i.IsPrimaryKey == true);
                 if (tablePk != null)
                 {
-                    bool fileCentric = DbUtils.ColumnsAreFileCentric(dbColumns);
+                    bool fileCentric = JqlUtils.ColumnsAreFileCentric(dbColumns);
                     JqlColumn? fkToThis = dbColumns.FirstOrDefault(i => i.Fk != null && i.Fk.TargetTable == dbDialog.ObjectName);
                     if (fkToThis != null)
                     {
@@ -553,7 +534,7 @@ namespace JQL
 				}
 			}
 			dbQuery.PaginationMaxSize = 100;
-			dbQuery.Aggregations = [new DbAggregation("Count", "COUNT(*)")];
+			dbQuery.Aggregations = [new JqlAggregation("Count", "COUNT(*)")];
 			return dbQuery;
 		}
 		public static JqlQuery GetReadListQuery(JqlModel dbDialog, string dbDialogFolderPath)
@@ -586,7 +567,7 @@ namespace JQL
 			}
 			dbQuery.PaginationMaxSize = 100;
 			dbQuery.Relations = GetRelationsForDbQueries(dbQuery, dbDialog.Relations);
-			dbQuery.Aggregations = [new DbAggregation("Count", "COUNT(*)")];
+			dbQuery.Aggregations = [new JqlAggregation("Count", "COUNT(*)")];
 			return dbQuery;
 		}
 		public static JqlQuery GetSelectForScalarFunction(JqlModel dbDialog, DbSchemaUtils dbSchemaUtils)
@@ -609,12 +590,12 @@ namespace JQL
 				if (col.ColumnIsForCreate())
 				{
                     JqlQueryColumn dbQueryColumn = new();
-					if (col.Name.EqualsIgnoreCase(LibSV.CreatedBy) || col.Name.EqualsIgnoreCase(LibSV.UpdatedBy))
+					if (col.Name.EqualsIgnoreCase(JqlUtils.CreatedBy) || col.Name.EqualsIgnoreCase(JqlUtils.UpdatedBy))
 					{
                         dbQueryColumn.As = col.Name;
                         dbQueryColumn.Phrase = "$UserId$";
 					}
-					if (col.Name.EqualsIgnoreCase(LibSV.CreatedOn) || col.Name.EqualsIgnoreCase(LibSV.UpdatedOn))
+					if (col.Name.EqualsIgnoreCase(JqlUtils.CreatedOn) || col.Name.EqualsIgnoreCase(JqlUtils.UpdatedOn))
 					{
 						dbQueryColumn.As = col.Name;
 						dbQueryColumn.Phrase = "GETDATE()";
@@ -626,7 +607,7 @@ namespace JQL
                     }
 
 					dbQuery.Columns.Add(dbQueryColumn);
-					if (col.Name.EndsWith("_xs"))
+					if (col.Name.EndsWithIgnoreCase("_xs"))
 						dbQuery.Params.Add(new JqlParam(col.Name, col.DbType) { ValueSharp = GetValueSharpForImage(col.Name), Size = col.Size, AllowNull = col.AllowNull });
 				}
 			}
@@ -662,12 +643,12 @@ namespace JQL
                     if(existingUpdateByKeyQ.Columns?.FirstOrDefault(c=>c.Name.EqualsIgnoreCase(col.Name)) is null)
                     {
                         JqlQueryColumn dbQueryColumn = new();
-						if (col.Name.EqualsIgnoreCase(LibSV.CreatedBy) || col.Name.EqualsIgnoreCase(LibSV.UpdatedBy))
+						if (col.Name.EqualsIgnoreCase(JqlUtils.CreatedBy) || col.Name.EqualsIgnoreCase(JqlUtils.UpdatedBy))
 						{
 							dbQueryColumn.As = col.Name;
 							dbQueryColumn.Phrase = "$UserId$";
 						}
-						if (col.Name.EqualsIgnoreCase(LibSV.CreatedOn) || col.Name.EqualsIgnoreCase(LibSV.UpdatedOn))
+						if (col.Name.EqualsIgnoreCase(JqlUtils.CreatedOn) || col.Name.EqualsIgnoreCase(JqlUtils.UpdatedOn))
 						{
 							dbQueryColumn.As = col.Name;
 							dbQueryColumn.Phrase = "GETDATE()";
@@ -679,7 +660,7 @@ namespace JQL
 						}
 
 						existingUpdateByKeyQ.Columns?.Add(dbQueryColumn);
-                        if (col.Name.EndsWith("_xs"))
+						if (col.Name.EndsWithIgnoreCase("_xs"))
                             existingUpdateByKeyQ.Params?.Add(new JqlParam(col.Name, col.DbType) { ValueSharp = GetValueSharpForImage(col.Name), Size = col.Size, AllowNull = col.AllowNull });
                     }
                 }
@@ -691,7 +672,7 @@ namespace JQL
         }
 		public static JqlWhere GetByPkWhere(JqlColumn pkColumn, JqlModel dbDialog)
 		{
-			return new() { SimpleClauses = [new ComparePhrase(DbUtils.GetSetColumnParamPair(dbDialog.ObjectName, pkColumn.Name, null))] };
+			return new() { SimpleClauses = [new ComparePhrase(JqlUtils.GetSetColumnParamPair(dbDialog.ObjectName, pkColumn.Name, null))] };
 		}
 		public static List<string>? GetRelationsForDbQueries(JqlQuery dbQuery, List<JqlRelation>? dbRelations)
         {
@@ -750,36 +731,12 @@ namespace JQL
             if(dbConfName.EqualsIgnoreCase(PowNetConfiguration.GetConnectionStringByName(dbConfName))) return $"{objectName}_{endfixName}";
 			return $"{dbConfName}_{objectName}_{endfixName}";
         }
-        public static void SetUiProps(JqlColumn dbColumn)
+
+        private static JqlColumnChangeTrackable SetAndGetColumnState(DbTable? dbObject, JqlColumnChangeTrackable col)
         {
-            dbColumn.UiProps = new UiProps
-            {
-                UiWidget = dbColumn.CalculateBestUiWidget(),
-                IsDisabled = dbColumn.CalculateIsDisabled(),
-                Required = !dbColumn.AllowNull,
-                SearchType = SearchType.None
-            };
-
-            if (dbColumn.IsHumanId == true || dbColumn.UiProps.UiWidget == UiWidget.Combo || dbColumn.UiProps.UiWidget == UiWidget.Radio)
-                dbColumn.UiProps.SearchType = SearchType.Fast;
-            else if (!dbColumn.DbType.EqualsIgnoreCase("image") && !dbColumn.IsDateTime() && !dbColumn.IsDate()) 
-                dbColumn.UiProps.SearchType = SearchType.Expandable;
-            else 
-                dbColumn.UiProps.SearchType = SearchType.None;
-
-
-            if (dbColumn.IsString()) dbColumn.UiProps.ValidationRule = ":=s(0," + dbColumn.Size.FixNullOrEmpty("256") + ")";
-
-            else if (dbColumn.DbType.EqualsIgnoreCase("tinylint")) dbColumn.UiProps.ValidationRule = ":=i(0,255)";
-            else if (dbColumn.DbType.EqualsIgnoreCase("smallint")) dbColumn.UiProps.ValidationRule = ":=i(0,32767)";
-            else if (dbColumn.DbType.EqualsIgnoreCase("int")) dbColumn.UiProps.ValidationRule = ":=i(0,2147483647)";
-            else if (dbColumn.DbType.EqualsIgnoreCase("bigint")) dbColumn.UiProps.ValidationRule = ":=i(0,9223372036854775807)";
-
-            else if (dbColumn.IsDateTime()) dbColumn.UiProps.ValidationRule = "dt(1900-01-01 00:01:00,2100-12-30 11:59:59)";
-            else if (dbColumn.IsDate()) dbColumn.UiProps.ValidationRule = "d(1900-01-01,2100-12-30)";
-
-            if (dbColumn.IsAuditing()) dbColumn.UiProps.Group = "Auditing";
+            col.State = dbObject is null || dbObject.Columns.FirstOrDefault(i => i.Name.EqualsIgnoreCase(col.Name)) is null ? "n" : "u";
+            return col;
         }
-		
-	}
+
+    }
 }

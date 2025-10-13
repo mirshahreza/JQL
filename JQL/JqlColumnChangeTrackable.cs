@@ -1,11 +1,7 @@
 ﻿namespace JQL
 {
-    public class DbColumnChangeTrackable : JqlColumn
+    public class JqlColumnChangeTrackable(string name) : JqlColumn(name)
     {
-		public DbColumnChangeTrackable(string name) : base(name)
-		{
-		}
-
 		public string State { set; get; } = "";
         public string InitialName { set; get; } = "";
     }

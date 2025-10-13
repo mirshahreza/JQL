@@ -245,23 +245,23 @@ COMMIT TRAN {TranName};
                 N = "N";
             }
 
-            if (wcc.CompareOperator == CompareOperator.StartsWith) return $"{columnFullName} LIKE @{DbUtils.GenParamName(source, dbParamName, null)} + {N}'%'";
-            if (wcc.CompareOperator == CompareOperator.EndsWith) return $"{columnFullName} LIKE {N}'%' + @{DbUtils.GenParamName(source, dbParamName, null)}";
-            if (wcc.CompareOperator == CompareOperator.Contains) return $"{columnFullName} LIKE {N}'%' + @{DbUtils.GenParamName(source, dbParamName, null)} + {N}'%'";
+            if (wcc.CompareOperator == CompareOperator.StartsWith) return $"{columnFullName} LIKE @{JqlUtils.GenParamName(source, dbParamName, null)} + {N}'%'";
+            if (wcc.CompareOperator == CompareOperator.EndsWith) return $"{columnFullName} LIKE {N}'%' + @{JqlUtils.GenParamName(source, dbParamName, null)}";
+            if (wcc.CompareOperator == CompareOperator.Contains) return $"{columnFullName} LIKE {N}'%' + @{JqlUtils.GenParamName(source, dbParamName, null)} + {N}'%'";
 
-            if (wcc.CompareOperator == CompareOperator.Equal) return $"{columnFullName} = @{DbUtils.GenParamName(source, dbParamName, null)}";
-            if (wcc.CompareOperator == CompareOperator.NotEqual) return $"{columnFullName} != @{DbUtils.GenParamName(source, dbParamName, null)}";
+            if (wcc.CompareOperator == CompareOperator.Equal) return $"{columnFullName} = @{JqlUtils.GenParamName(source, dbParamName, null)}";
+            if (wcc.CompareOperator == CompareOperator.NotEqual) return $"{columnFullName} != @{JqlUtils.GenParamName(source, dbParamName, null)}";
 
             if (wcc.CompareOperator == CompareOperator.IsNull) return $"{columnFullName} IS NULL";
             if (wcc.CompareOperator == CompareOperator.IsNotNull) return $"{columnFullName} IS NOT NULL";
 
-            if (wcc.CompareOperator == CompareOperator.LessThan) return $"{columnFullName} < @{DbUtils.GenParamName(source, dbParamName, null)}";
-            if (wcc.CompareOperator == CompareOperator.LessThanOrEqual) return $"{columnFullName} <= @{DbUtils.GenParamName(source, dbParamName, null)}";
-            if (wcc.CompareOperator == CompareOperator.MoreThan) return $"{columnFullName} > @{DbUtils.GenParamName(source, dbParamName, null)}";
-            if (wcc.CompareOperator == CompareOperator.MoreThanOrEqual) return $"{columnFullName} >= @{DbUtils.GenParamName(source, dbParamName, null)}";
+            if (wcc.CompareOperator == CompareOperator.LessThan) return $"{columnFullName} < @{JqlUtils.GenParamName(source, dbParamName, null)}";
+            if (wcc.CompareOperator == CompareOperator.LessThanOrEqual) return $"{columnFullName} <= @{JqlUtils.GenParamName(source, dbParamName, null)}";
+            if (wcc.CompareOperator == CompareOperator.MoreThan) return $"{columnFullName} > @{JqlUtils.GenParamName(source, dbParamName, null)}";
+            if (wcc.CompareOperator == CompareOperator.MoreThanOrEqual) return $"{columnFullName} >= @{JqlUtils.GenParamName(source, dbParamName, null)}";
 
-            if (wcc.CompareOperator == CompareOperator.In) return $"{columnFullName} IN @{DbUtils.GenParamName(source, dbParamName, null)}";
-            if (wcc.CompareOperator == CompareOperator.NotIn) return $"{columnFullName} NOT IN @{DbUtils.GenParamName(source, dbParamName, null)}";
+            if (wcc.CompareOperator == CompareOperator.In) return $"{columnFullName} IN @{JqlUtils.GenParamName(source, dbParamName, null)}";
+            if (wcc.CompareOperator == CompareOperator.NotIn) return $"{columnFullName} NOT IN @{JqlUtils.GenParamName(source, dbParamName, null)}";
 
             return "";
         }
@@ -269,28 +269,28 @@ COMMIT TRAN {TranName};
         public override string DbParamToCSharpInputParam(JqlParam dbParam)
         {
             // cover char,nchar,varchar,nvarchar,text,ntext, uniqueidentifier
-            if (dbParam.DbType.Contains("char") || dbParam.DbType.Contains("text") || dbParam.DbType.Contains("uniqueidentifier"))
+            if (dbParam.DbType.ContainsIgnoreCase("char") || dbParam.DbType.ContainsIgnoreCase("text") || dbParam.DbType.ContainsIgnoreCase("uniqueidentifier"))
                 return $"string {dbParam.Name}";
 
-            if (dbParam.DbType.Contains("bigint"))
+            if (dbParam.DbType.ContainsIgnoreCase("bigint"))
                 return $"Int64 {dbParam.Name}";
 
-            if (dbParam.DbType.Contains("int"))
+            if (dbParam.DbType.ContainsIgnoreCase("int"))
                 return $"int {dbParam.Name}";
 
-            if (dbParam.DbType.Contains("date"))
+            if (dbParam.DbType.ContainsIgnoreCase("date"))
                 return $"DateTime {dbParam.Name}";
 
-            if (dbParam.DbType.Equals("bit"))
+            if (dbParam.DbType.EqualsIgnoreCase("bit"))
                 return $"Boolean {dbParam.Name}";
 
-            if (dbParam.DbType.Equals("decimal") || dbParam.DbType.Equals("money") || dbParam.DbType.Equals("numeric") || dbParam.DbType.Equals("real"))
+            if (dbParam.DbType.EqualsIgnoreCase("decimal") || dbParam.DbType.EqualsIgnoreCase("money") || dbParam.DbType.EqualsIgnoreCase("numeric") || dbParam.DbType.EqualsIgnoreCase("real"))
                 return $"decimal {dbParam.Name}";
 
-            if (dbParam.DbType.Equals("float"))
+            if (dbParam.DbType.EqualsIgnoreCase("float"))
                 return $"float {dbParam.Name}";
 
-            if (dbParam.DbType.Equals("image") || dbParam.DbType.Equals("binary"))
+            if (dbParam.DbType.EqualsIgnoreCase("image") || dbParam.DbType.EqualsIgnoreCase("binary"))
 				return $"byte[] {dbParam.Name}";
 
 			return $"string {dbParam.Name}";

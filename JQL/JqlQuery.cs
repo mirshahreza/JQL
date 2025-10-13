@@ -12,7 +12,7 @@ namespace JQL
         public List<JqlParam>? Params { set; get; }
         public JqlWhere? Where { set; get; }
         public int? PaginationMaxSize { set; get; }
-        public List<DbAggregation>? Aggregations { set; get; }
+        public List<JqlAggregation>? Aggregations { set; get; }
         public List<string>? Relations { set; get; }
         public string? HistoryTable { set; get; }
 

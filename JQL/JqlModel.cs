@@ -56,8 +56,8 @@ namespace JQL
 		public List<JqlColumn> GetAuditingColumns()
 		{
 			List<JqlColumn> dbColumns = [];
-			JqlColumn? createdOn = Columns.FirstOrDefault(i => i.Name.EqualsIgnoreCase(LibSV.CreatedOn));
-			JqlColumn? UpdatedOn = Columns.FirstOrDefault(i => i.Name.EqualsIgnoreCase(LibSV.UpdatedOn));
+			JqlColumn? createdOn = Columns.FirstOrDefault(i => i.Name.EqualsIgnoreCase(JqlUtils.CreatedOn));
+			JqlColumn? UpdatedOn = Columns.FirstOrDefault(i => i.Name.EqualsIgnoreCase(JqlUtils.UpdatedOn));
 			if (createdOn is not null) dbColumns.Add(createdOn);
 			if (UpdatedOn is not null) dbColumns.Add(UpdatedOn);
 			return dbColumns;
@@ -102,7 +102,7 @@ namespace JQL
 			MemoryService.SharedMemoryCache.TryRemove(GenCacheKey(DbConfName, ObjectName));
 		}
 
-		public bool IsTree() => Columns.FirstOrDefault(i => i.Fk != null && i.Fk.TargetTable == ObjectName) != null;
+		public bool IsTree() => Columns.Any(i => i.Fk != null && i.Fk.TargetTable == ObjectName);
 
 		public JqlColumn GetTreeParentColumn()
 		{
@@ -136,40 +136,6 @@ namespace JQL
 
 		public string GetModelFolder() => _jqlModelsRoot ?? string.Empty;
 
-        public ClientQueryMetadata GetReadListClientQueryMetadata(string queryName)
-        {
-			ClientQueryMetadata cqm = new(ObjectName, ObjectType.ToString())
-			{
-				ParentObjectColumns= Columns.Where(i => !i.Name.ContainsIgnoreCase("password")).ToList(),
-				FastSearchColumns = Columns.Where(i => i.UiProps?.SearchType == SearchType.Fast && !i.Name.ContainsIgnoreCase("password")).ToList(),
-				ExpandableSearchColumns = Columns.Where(i => i.UiProps?.SearchType == SearchType.Expandable && !i.Name.ContainsIgnoreCase("password")).ToList()
-			};
-
-			JqlQuery? dbQuery = DbQueries.FirstOrDefault(i => i.Name == queryName);
-
-			if (dbQuery is not null)
-            {
-                cqm.Type = dbQuery.Type.ToString();
-                cqm.Name = dbQuery.Name;
-                if (dbQuery.Columns is not null)
-                {
-					foreach (JqlQueryColumn dbQueryColumn in dbQuery.Columns)
-					{
-						string columnName = dbQueryColumn.Name ?? dbQueryColumn.As ?? "";
-						if (!columnName.IsNullOrEmpty())
-						{
-							// Ensure unique column names in a case-insensitive way
-							if (!cqm.QueryColumns.Any(s => s.Equals(columnName, StringComparison.OrdinalIgnoreCase)))
-							{
-								cqm.QueryColumns.Add(columnName);
-							}
-						}
-					}
-				}
-			}
-			return cqm;
-        }
-
 
 		private bool _disposed = false;
 
@@ -184,16 +150,6 @@ namespace JQL
 		protected virtual void Dispose(bool disposing)
 		{
 			if (_disposed) return;
-
-			if (disposing)
-			{
-				// Dispose managed resources
-				// Example: if you have any disposable members, dispose them here
-				// _someDisposableMember?.Dispose();
-			}
-
-			// Dispose unmanaged resources (if any)
-
 			_disposed = true;
 		}
 
@@ -201,7 +157,6 @@ namespace JQL
 		public static JqlModel Load(string jqlModelsRoot, string dbConfName, string? objectName)
         {
 			string fp = GetFullFilePath(jqlModelsRoot, dbConfName, objectName);
-			// Fallback to legacy path if the new path does not exist
 			if (!File.Exists(fp))
 			{
                 throw new PowNetException("FilePathIsNotExist", System.Reflection.MethodBase.GetCurrentMethod())

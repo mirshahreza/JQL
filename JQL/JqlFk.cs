@@ -6,7 +6,7 @@
 		public string TargetTable { set; get; } = targetTable;
 		public string TargetColumn { set; get; } = targetColumn;
 		public bool EnforceRelation { set; get; } = false;
-        public ClientRequest? Lookup { set; get; }
+        public JqlRequestRaw? Lookup { set; get; }
         public string? JsLookupParentId { set; get; }
     }
 }

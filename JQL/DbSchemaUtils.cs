@@ -140,9 +140,9 @@ namespace JQL
             {
                 dbParams.Add
                 (
-                    new JqlParam(r["ParameterName"].ToStringEmpty().Replace("@", ""), r["ParameterDataType"].ToStringEmpty().ToUpper())
+                    new JqlParam(r["ParameterName"].ToStringEmpty().Replace("@", ""), r["ParameterDataType"].ToStringEmpty().ToUpperInvariant())
                     {
-                        Size = r["Size"].ToString() == "" ? null : r["Size"].ToString()?.ToUpper(),
+                        Size = r["Size"].ToString() == "" ? null : r["Size"].ToString()?.ToUpperInvariant(),
                         AllowNull = false
                     }
                 );
@@ -152,7 +152,7 @@ namespace JQL
 
         public void CreateOrAlterTable(DbTable dbTable)
         {
-            DbColumnChangeTrackable? pkColumn = dbTable.Columns.FirstOrDefault(i => i.IsPrimaryKey = true) ?? throw new PowNetException("PrimaryKeyIsNotExist", System.Reflection.MethodBase.GetCurrentMethod())
+            JqlColumnChangeTrackable? pkColumn = dbTable.Columns.FirstOrDefault(i => i.IsPrimaryKey == true) ?? throw new PowNetException("PrimaryKeyIsNotExist", System.Reflection.MethodBase.GetCurrentMethod())
                     .AddParam("TableName", dbTable.Name)
                     .GetEx();
 
@@ -165,13 +165,13 @@ namespace JQL
                     string st = f.State.FixNullOrEmpty("");
                     if (st.Equals("n"))
                     {
-                        CreateColumn(dbTable.Name, f.Name, DbUtils.GetTypeSize(f.DbType, f.Size), f.AllowNull);
+                        CreateColumn(dbTable.Name, f.Name, JqlUtils.GetTypeSize(f.DbType, f.Size), f.AllowNull);
                         if (f.Fk is not null) CreateOrAlterFk(dbTable.Name, f);
                     }
                     else if (st.Equals("u"))
                     {
                         if (!f.InitialName.IsNullOrEmpty() && f.InitialName != f.Name) DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_RenameColumn '{dbTable.Name}','{f.InitialName}','{f.Name}';");
-                        AlterColumn(dbTable.Name, f.Name, DbUtils.GetTypeSize(f.DbType, f.Size), f.AllowNull, f.DbDefault);
+                        AlterColumn(dbTable.Name, f.Name, JqlUtils.GetTypeSize(f.DbType, f.Size), f.AllowNull, f.DbDefault);
                         if (f.Fk is not null) CreateOrAlterFk(dbTable.Name, f);
                     }
                     else if (st.Equals("d"))
@@ -199,7 +199,7 @@ namespace JQL
             }
         }
 
-        private void CreateMinTableIfNotExist(DbTable dbTable, DbColumnChangeTrackable pk)
+        private void CreateMinTableIfNotExist(DbTable dbTable, JqlColumnChangeTrackable pk)
         {
             string fn;
             if (pk.DbType.EqualsIgnoreCase("GUID") || pk.DbType.EqualsIgnoreCase("UNIQUEIDENTIFIER"))
@@ -272,7 +272,7 @@ namespace JQL
         {
             DbIOInstance.ToNoneQuery($"EXEC dbo.Zz_DropColumn '{tableName}','{columnName}';");
         }
-        private void CreateOrAlterFk(string tableName, DbColumnChangeTrackable tableColumn)
+        private void CreateOrAlterFk(string tableName, JqlColumnChangeTrackable tableColumn)
         {
             if (tableColumn.Fk?.FkName == "")
                 tableColumn.Fk.FkName = $"{tableName}_{tableColumn.Name}_{tableColumn.Fk.TargetTable}_{tableColumn.Fk.TargetColumn}";

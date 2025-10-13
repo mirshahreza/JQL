@@ -10,7 +10,7 @@ namespace JQL
 
     public class DbTable(string name) : DbObject(name, DbObjectType.Table)
     {
-        public List<DbColumnChangeTrackable> Columns { set; get; } = [];
+        public List<JqlColumnChangeTrackable> Columns { set; get; } = [];
 	}
 
 	public class DbTableFunction(string name) : DbObject(name, DbObjectType.TableFunction)
@@ -23,7 +23,7 @@ namespace JQL
 
 	public class DbView(string name) : DbObject(name, DbObjectType.View)
     {
-        public List<DbColumnChangeTrackable> Columns { set; get; } = [];
+        public List<JqlColumnChangeTrackable> Columns { set; get; } = [];
 	}
 
 	public class DbProcedure(string name) : DbObject(name, DbObjectType.Procedure)

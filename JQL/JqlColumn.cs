@@ -21,11 +21,9 @@ namespace JQL
 
 		public string? UpdateGroup { set; get; } = "";
 
-		public UiProps? UiProps { set; get; }
-
 		public bool IsAuditing()
 		{
-            if(LibSV.AuditingFields.ContainsIgnoreCase(Name)) return true;
+            if(JqlUtils.AuditingFields.ContainsIgnoreCase(Name)) return true;
 			return false;
 		}
 		public bool IsFileOrRelatedColumns()
@@ -43,7 +41,6 @@ namespace JQL
 			if (DbType.ContainsIgnoreCase("real")) return true;
 			if (DbType.ContainsIgnoreCase("money")) return true;
 			if (DbType.ContainsIgnoreCase("float")) return true;
-			if (DbType.ContainsIgnoreCase("numeric")) return true;
 			return false;
 		}
 		public bool IsLargContent()
@@ -51,7 +48,7 @@ namespace JQL
 			if (DbType.EqualsIgnoreCase("text")) return true;
 			if (DbType.EqualsIgnoreCase("ntext")) return true;
 			if ((DbType.EqualsIgnoreCase("varchar") || DbType.EqualsIgnoreCase("nvarchar")) && Size?.ToIntSafe() > 512) return true;
-			if (DbType.EqualsIgnoreCase("image") && !Name.EndsWith("_xs")) return true;
+			if (DbType.EqualsIgnoreCase("image") && !Name.EndsWithIgnoreCase("_xs")) return true;
 
 			return false;
 		}
@@ -79,7 +76,7 @@ namespace JQL
             
             if (DbType.EqualsIgnoreCase("bit")) return UiWidget.Checkbox;
 
-            if (DbType.EqualsIgnoreCase("image") && Name.StartsWith("picture", StringComparison.OrdinalIgnoreCase)) return UiWidget.ImageView;
+            if (DbType.EqualsIgnoreCase("image") && Name.StartsWithIgnoreCase("picture")) return UiWidget.ImageView;
 			if (DbType.EqualsIgnoreCase("image")) return UiWidget.FileView;
 			
             if (DbType.ContainsIgnoreCase("datetime")) return UiWidget.DateTimePicker;
@@ -103,10 +100,9 @@ namespace JQL
             return false;
         }
 
-
-        public DbColumnChangeTrackable ToDbColumnChangeTrackable()
+        public JqlColumnChangeTrackable ToDbColumnChangeTrackable()
         {
-            return new DbColumnChangeTrackable(this.Name)
+            return new JqlColumnChangeTrackable(this.Name)
             {
                 AllowNull = this.AllowNull,
                 DbDefault = this.DbDefault,
@@ -122,8 +118,6 @@ namespace JQL
                 State = ""
             };
         }
-
-       
 
     }
 }
