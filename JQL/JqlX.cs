@@ -132,4 +132,37 @@ namespace JQL
             Type = objectTyme;
         }
     }
+
+    public record class DbObject(string name, DbObjectType dbObjectType)
+    {
+        public string Name { get; init; } = name;
+        public DbObjectType DbObjectType { get; init; } = dbObjectType;
+    }
+
+    public record class DbTable(string name) : DbObject(name, DbObjectType.Table)
+    {
+        public List<JqlColumn> Columns { set; get; } = [];
+    }
+    public record class DbTableChangeTrackable(string name) : DbObject(name, DbObjectType.Table)
+    {
+        public List<JqlColumnChangeTrackable> Columns { set; get; } = [];
+    }
+
+    public record class DbTableFunction(string name) : DbObject(name, DbObjectType.TableFunction)
+    {
+    }
+
+    public record class DbScalarFunction(string name) : DbObject(name, DbObjectType.ScalarFunction)
+    {
+    }
+
+    public record class DbView(string name) : DbObject(name, DbObjectType.View)
+    {
+        public List<JqlColumn> Columns { set; get; } = [];
+    }
+
+    public record class DbProcedure(string name) : DbObject(name, DbObjectType.Procedure)
+    {
+    }
+
 }
