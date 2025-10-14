@@ -28,6 +28,138 @@ namespace JQL.Test.Integration
         }
 
         [Fact(Skip = "Un-skip to run against real DB")]
+        public void All_Supported_Types_CreateOrAlterTable_And_CreateColumn()
+        {
+            var utils = new DbSchemaUtils(_fx.ConnectionName);
+
+            string tSchema = "ITEST_AllTypesA";
+            string tDirect = "ITEST_AllTypesB";
+
+            // Define a wide set of SQL Server data types
+            var cols = new (string Name, string Type, string? Size)[]
+            {
+                ("C_INT", "INT", null),
+                ("C_BIGINT", "BIGINT", null),
+                ("C_SMALLINT", "SMALLINT", null),
+                ("C_TINYINT", "TINYINT", null),
+                ("C_BIT", "BIT", null),
+                ("C_UNIQUEIDENTIFIER", "UNIQUEIDENTIFIER", null),
+                ("C_DECIMAL", "DECIMAL", "18,2"),
+                ("C_NUMERIC", "NUMERIC", "10,3"),
+                ("C_MONEY", "MONEY", null),
+                ("C_SMALLMONEY", "SMALLMONEY", null),
+                ("C_FLOAT", "FLOAT", null),
+                ("C_REAL", "REAL", null),
+                ("C_DATE", "DATE", null),
+                ("C_TIME", "TIME", null),
+                ("C_DATETIME", "DATETIME", null),
+                ("C_SMALLDATETIME", "SMALLDATETIME", null),
+                ("C_DATETIME2", "DATETIME2", null),
+                ("C_DATETIMEOFFSET", "DATETIMEOFFSET", null),
+                ("C_CHAR", "CHAR", "10"),
+                ("C_NCHAR", "NCHAR", "10"),
+                ("C_VARCHAR", "VARCHAR", "50"),
+                ("C_NVARCHAR", "NVARCHAR", "50"),
+                ("C_VARCHAR_MAX", "VARCHAR", "MAX"),
+                ("C_NVARCHAR_MAX", "NVARCHAR", "MAX"),
+                ("C_TEXT", "TEXT", null),
+                ("C_NTEXT", "NTEXT", null),
+                ("C_BINARY", "BINARY", "16"),
+                ("C_VARBINARY", "VARBINARY", "50"),
+                ("C_VARBINARY_MAX", "VARBINARY", "MAX"),
+                ("C_IMAGE", "IMAGE", null),
+                ("C_XML", "XML", null)
+            };
+
+            // Create with schema change tracking (n)
+            var schema = new DbTableChangeTrackable(tSchema)
+            {
+                Columns = [ new JqlColumnChangeTrackable("Id") { IsPrimaryKey = true, IsIdentity = true, IdentityStart = "1", IdentityStep = "1", DbType = "INT", AllowNull = false } ]
+            };
+            foreach (var c in cols)
+            {
+                schema.Columns.Add(new JqlColumnChangeTrackable(c.Name)
+                {
+                    DbType = c.Type,
+                    Size = c.Size,
+                    AllowNull = true,
+                    State = "n"
+                });
+            }
+            utils.CreateOrAlterTable(schema);
+
+            var metaA = utils.GetTableViewColumns(tSchema).Select(x => x.Name).ToList();
+            foreach (var c in cols) Assert.Contains(c.Name, metaA);
+
+            // Create via direct CreateColumn on a fresh table with just PK
+            var schemaB = new DbTableChangeTrackable(tDirect)
+            {
+                Columns = [ new JqlColumnChangeTrackable("Id") { IsPrimaryKey = true, IsIdentity = true, IdentityStart = "1", IdentityStep = "1", DbType = "INT", AllowNull = false } ]
+            };
+            utils.CreateOrAlterTable(schemaB);
+
+            foreach (var c in cols)
+            {
+                var typeSize = c.Size is null ? c.Type.ToUpperInvariant() : $"{c.Type.ToUpperInvariant()}({c.Size})";
+                utils.CreateColumn(tDirect, c.Name, typeSize, allowNull: true);
+            }
+
+            var metaB = utils.GetTableViewColumns(tDirect).Select(x => x.Name).ToList();
+            foreach (var c in cols) Assert.Contains(c.Name, metaB);
+
+            utils.DropTable(tSchema);
+            utils.DropTable(tDirect);
+        }
+
+        [Fact(Skip = "Un-skip to run against real DB")]
+        public void RenameColumn_Using_InitialName_Path()
+        {
+            var utils = new DbSchemaUtils(_fx.ConnectionName);
+            string t = "ITEST_Rename";
+
+            var schema = new DbTableChangeTrackable(t)
+            {
+                Columns =
+                [
+                    new JqlColumnChangeTrackable("Id") { IsPrimaryKey = true, IsIdentity = true, IdentityStart = "1", IdentityStep = "1", DbType = "INT", AllowNull = false },
+                    new JqlColumnChangeTrackable("C1") { DbType = "INT", AllowNull = true, State = "n" }
+                ]
+            };
+            utils.CreateOrAlterTable(schema);
+
+            // rename C1 -> C2
+            var rename = new DbTableChangeTrackable(t)
+            {
+                Columns = [ new JqlColumnChangeTrackable("C2") { DbType = "INT", AllowNull = true, State = "u", InitialName = "C1" } ]
+            };
+            utils.CreateOrAlterTable(rename);
+
+            var cols = utils.GetTableViewColumns(t).Select(c => c.Name).ToList();
+            Assert.Contains("C2", cols);
+            Assert.DoesNotContain("C1", cols);
+
+            utils.DropTable(t);
+        }
+
+        [Fact(Skip = "Un-skip to run against real DB")]
+        public void Create_Table_With_Guid_Primary_Key()
+        {
+            var utils = new DbSchemaUtils(_fx.ConnectionName);
+            string t = "ITEST_GuidPk";
+
+            var schema = new DbTableChangeTrackable(t)
+            {
+                Columns = [ new JqlColumnChangeTrackable("Id") { IsPrimaryKey = true, DbType = "UNIQUEIDENTIFIER", AllowNull = false } ]
+            };
+            utils.CreateOrAlterTable(schema);
+
+            var tables = utils.GetObjects(DbObjectType.Table, t, exactNameSearch: true);
+            Assert.Contains(tables, o => o.Name == t);
+
+            utils.DropTable(t);
+        }
+
+        [Fact(Skip = "Un-skip to run against real DB")]
         public void Direct_CreateColumn_And_DropColumn()
         {
             var utils = new DbSchemaUtils(_fx.ConnectionName);
@@ -226,142 +358,6 @@ namespace JQL.Test.Integration
 
             utils.DropTable(child);
             utils.DropTable(parent);
-        }
-        [Fact(Skip = "Un-skip to run against real DB")]
-        public void DDL_Table_Create_Update_Delete_Rename_Truncate()
-        {
-            var utils = new DbSchemaUtils(_fx.ConnectionName);
-            string table = "ITEST_TDDL";
-            string table2 = "ITEST_TDDL2";
-
-            // Create new table with PK + columns (n)
-            var schema = new DbTableChangeTrackable(table)
-            {
-                Columns =
-                [
-                    new JqlColumnChangeTrackable("Id")
-                    {
-                        IsPrimaryKey = true,
-                        IsIdentity = true,
-                        IdentityStart = "1",
-                        IdentityStep = "1",
-                        DbType = "INT",
-                        AllowNull = false
-                    },
-                    new JqlColumnChangeTrackable("C1") { DbType = "NVARCHAR", Size = "50", AllowNull = true, State = "n" }
-                ]
-            };
-            utils.CreateOrAlterTable(schema);
-
-            // Update column (u)
-            schema.Columns.Clear();
-            schema.Columns.Add(new JqlColumnChangeTrackable("Id") { IsPrimaryKey = true, IsIdentity = true, DbType = "INT" });
-            schema.Columns.Add(new JqlColumnChangeTrackable("C1") { DbType = "NVARCHAR", Size = "100", AllowNull = true, State = "u" });
-            utils.CreateOrAlterTable(schema);
-
-            // Add new column (n)
-            schema.Columns.Clear();
-            schema.Columns.Add(new JqlColumnChangeTrackable("Id") { IsPrimaryKey = true, IsIdentity = true, DbType = "INT" });
-            schema.Columns.Add(new JqlColumnChangeTrackable("C2") { DbType = "INT", AllowNull = true, State = "n" });
-            utils.CreateOrAlterTable(schema);
-
-            // Drop column (d)
-            var drop = new DbTableChangeTrackable(table) { Columns = [ new JqlColumnChangeTrackable("C2") { DbType = "INT", State = "d" } ] };
-            utils.CreateOrAlterTable(drop);
-
-            // Truncate
-            utils.TruncateTable(table);
-
-            // Rename
-            utils.RenameTable(table, table2);
-
-            // Drop
-            utils.DropTable(table2);
-        }
-
-        [Fact(Skip = "Un-skip to run against real DB")]
-        public void DDL_Create_FK_And_GetTableFks()
-        {
-            var utils = new DbSchemaUtils(_fx.ConnectionName);
-            string parent = "ITEST_FKParent";
-            string child = "ITEST_FKChild";
-
-            // Parent
-            var t1 = new DbTableChangeTrackable(parent)
-            {
-                Columns =
-                [
-                    new JqlColumnChangeTrackable("Id")
-                    {
-                        IsPrimaryKey = true,
-                        IsIdentity = true,
-                        IdentityStart = "1",
-                        IdentityStep = "1",
-                        DbType = "INT",
-                        AllowNull = false
-                    },
-                    new JqlColumnChangeTrackable("Name") { DbType = "NVARCHAR", Size = "50", AllowNull = true, State = "n" }
-                ]
-            };
-            utils.CreateOrAlterTable(t1);
-
-            // Child with FK
-            var t2 = new DbTableChangeTrackable(child)
-            {
-                Columns =
-                [
-                    new JqlColumnChangeTrackable("Id")
-                    {
-                        IsPrimaryKey = true,
-                        IsIdentity = true,
-                        IdentityStart = "1",
-                        IdentityStep = "1",
-                        DbType = "INT",
-                        AllowNull = false
-                    },
-                    new JqlColumnChangeTrackable("ParentId") { DbType = "INT", AllowNull = false, State = "n", Fk = new JqlFk("","ITEST_FKParent","Id") { EnforceRelation = false } }
-                ]
-            };
-            utils.CreateOrAlterTable(t2);
-
-            var fks = utils.GetTableFks(child);
-            Assert.True(fks.Rows.Count >= 1);
-
-            utils.DropTable(child);
-            utils.DropTable(parent);
-        }
-
-        [Fact(Skip = "Un-skip to run against real DB")]
-        public void Views_Procedures_Functions_Create_Alter_Drop_And_Params()
-        {
-            var utils = new DbSchemaUtils(_fx.ConnectionName);
-
-            // Views
-            utils.CreateEmptyView("ITEST_V1");
-            utils.AlterObjectScript("CREATE OR ALTER VIEW [dbo].[ITEST_V1] AS SELECT 1 AS A;");
-            string vscript = utils.GetCreateOrAlterObject("ITEST_V1");
-            Assert.False(string.IsNullOrWhiteSpace(vscript));
-            utils.DropView("ITEST_V1");
-
-            // Procedure with parameter
-            utils.CreateEmptyProcedure("ITEST_P1");
-            utils.AlterObjectScript("CREATE OR ALTER PROCEDURE [dbo].[ITEST_P1] @P1 INT AS SET NOCOUNT ON; SELECT @P1 AS R;");
-            var pparams = utils.GetProceduresFunctionsParameters("ITEST_P1");
-            Assert.NotNull(pparams);
-            utils.DropProcedure("ITEST_P1");
-
-            // Scalar and Table functions
-            utils.CreateEmptyScalarFunction("ITEST_SF1");
-            utils.AlterObjectScript("CREATE OR ALTER FUNCTION [dbo].[ITEST_SF1] (@x INT) RETURNS INT AS BEGIN RETURN @x; END");
-            var sfparams = utils.GetProceduresFunctionsParameters("ITEST_SF1");
-            Assert.NotNull(sfparams);
-            utils.DropFunction("ITEST_SF1");
-
-            utils.CreateEmptyTableFunction("ITEST_TF1");
-            utils.AlterObjectScript("CREATE OR ALTER FUNCTION [dbo].[ITEST_TF1] (@x INT) RETURNS TABLE AS RETURN SELECT @x AS X;");
-            var tfparams = utils.GetProceduresFunctionsParameters("ITEST_TF1");
-            Assert.NotNull(tfparams);
-            utils.DropFunction("ITEST_TF1");
         }
     }
 }
