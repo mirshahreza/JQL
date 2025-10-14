@@ -40,7 +40,7 @@ namespace JQL.Test.Integration
         {
             // For ToMD5/ToMD4 we need a column; we reuse Name mapping by constructing a special UpdateByKey_Partial
             var factory = new JqlModelFactory(_fx.ConnectionName);
-            factory.CreateNewUpdateByKey(DbTestHelper.Master, "ReadByKey_MD", new() { "Name" }, "UpdateByKey_MD", null, null, null);
+            factory.CreateNewUpdateByKey(DbTestHelper.Master, "ReadByKey_MD", new() { "Name" }, "UpdateByKey_MD", string.Empty, string.Empty, string.Empty);
 
             var upd = JqlRequest.GetInstanceByQueryName($"{_fx.ConnectionName}.{DbTestHelper.Master}.UpdateByKey_MD");
             // Emulate ValueSharp by directly setting on dbQuery after init through Params merging; here we just provide plain value since hashing is done when ValueSharp is set by model.

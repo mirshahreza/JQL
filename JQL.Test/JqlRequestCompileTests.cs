@@ -14,16 +14,16 @@ namespace JQL.Test
             var root = PowNetConfiguration.ServerPath;
             if (!Directory.Exists(root)) Directory.CreateDirectory(root);
             var m = new JqlModel("DefaultConnection","Users", root);
-            m.Columns.AddRange(new[]
-            {
-                new JqlColumn("Id") { DbType = "int", IsPrimaryKey = true },
+            m.Columns.AddRange(
+			[
+				new JqlColumn("Id") { DbType = "int", IsPrimaryKey = true },
                 new JqlColumn("Name") { DbType = "nvarchar", Size = "50" },
                 new JqlColumn("IsActive") { DbType = "bit" }
-            });
+            ]);
             m.DbQueries.Add(new JqlQuery("ReadList", QueryType.ReadList)
             {
-                Columns = new List<JqlQueryColumn>{ new() { Name = "Id" }, new() { Name = "Name" } },
-                Aggregations = new List<JqlAggregation>{ new("Count","COUNT(*)") }
+                Columns = [new() { Name = "Id" }, new() { Name = "Name" }],
+                Aggregations = [new("Count","COUNT(*)")]
             });
             m.Save();
             return m;
@@ -37,7 +37,7 @@ namespace JQL.Test
 
             // include indicated
             req.AggregationsContainment = Containment.IncludeIndicatedItems;
-            req.ClientIndicatedAggregations = new List<string>{ "Count" };
+            req.ClientIndicatedAggregations = ["Count"];
             var list = req.Exec();
             Assert.NotNull(list);
 
