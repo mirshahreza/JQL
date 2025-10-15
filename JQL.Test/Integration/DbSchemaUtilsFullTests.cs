@@ -24,7 +24,7 @@ namespace JQL.Test.Integration
             Assert.Contains(likeMaster, o => o.Name.StartsWith("ITEST_", StringComparison.OrdinalIgnoreCase));
 
             var exact = utils.GetObjects(DbObjectType.Table, DbTestHelper.Master, exactNameSearch: true);
-            Assert.True(exact.Any(o => o.Name.Equals(DbTestHelper.Master, StringComparison.OrdinalIgnoreCase)));
+            Assert.Contains(exact, o => o.Name.Equals(DbTestHelper.Master, StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact(Skip = "Un-skip to run against real DB")]

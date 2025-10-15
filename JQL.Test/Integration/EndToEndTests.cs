@@ -158,5 +158,102 @@ namespace JQL.Test.Integration
             var res = agg.Exec();
             Assert.NotNull(res);
         }
+
+        [Fact(Skip = "Un-skip to run against real DB")]
+        public void ReadList_String_Operators_StartsWith_EndsWith_Contains()
+        {
+            // Seed
+            DbTestHelper.SeedMaster(_fx.ConnectionName, "STR-Alpha", true);
+            DbTestHelper.SeedMaster(_fx.ConnectionName, "STR-Beta", true);
+            DbTestHelper.SeedMaster(_fx.ConnectionName, "MM-Gamma", true);
+
+            var req = JqlRequest.GetInstanceByQueryName($"{_fx.ConnectionName}.{DbTestHelper.Master}.ReadList");
+            req.Where = new JqlWhere
+            {
+                ConjunctiveOperator = ConjunctiveOperator.AND,
+                CompareClauses =
+                [
+                    new CompareClause("Name", "STR-") { CompareOperator = CompareOperator.StartsWith },
+                    new CompareClause("Name", "a") { CompareOperator = CompareOperator.Contains },
+                    new CompareClause("Name", "a") { CompareOperator = CompareOperator.EndsWith }
+                ]
+            };
+            var r = req.Exec();
+            Assert.NotNull(r);
+        }
+
+        [Fact(Skip = "Un-skip to run against real DB")]
+        public void ReadList_Mixed_Containment_Columns_And_Aggregations()
+        {
+            var req = JqlRequest.GetInstanceByQueryName($"{_fx.ConnectionName}.{DbTestHelper.Master}.ReadList");
+            req.ColumnsContainment = Containment.ExcludeIndicatedItems;
+            req.ClientIndicatedColumns = [ "Picture", "Picture_xs" ]; // exclude heavy content
+            req.AggregationsContainment = Containment.IncludeIndicatedItems;
+            req.ClientIndicatedAggregations = [ "Count" ];
+            req.Pagination = new JqlPagination { PageNumber = 1, PageSize = 10 };
+            var r = req.Exec();
+            Assert.NotNull(r);
+        }
+
+        [Fact(Skip = "Un-skip to run against real DB")]
+        public void UpdateByKey_With_Relations_Create_Update_Delete()
+        {
+            // Seed master and one detail
+            int mid = DbTestHelper.SeedMaster(_fx.ConnectionName, "REL-MASTER", true);
+            DbTestHelper.SeedDetail(_fx.ConnectionName, mid, "OLD");
+
+            // Prepare relations payload
+            var relations = new Dictionary<string, List<List<JqlParamRaw>>>();
+            var rows = new List<List<JqlParamRaw>>();
+            // create a new detail
+            rows.Add(new List<JqlParamRaw>
+            {
+                new("MasterId", mid),
+                new("Title", "NEW"),
+                new("_flag_", "c")
+            });
+            // update an existing one (assumes Id=1 for simplicity in test env or adapt accordingly)
+            rows.Add(new List<JqlParamRaw>
+            {
+                new("Id", 1),
+                new("Title", "UPDATED"),
+                new("_flag_", "u")
+            });
+            // delete an existing one (assumes Id=1 for simplicity)
+            rows.Add(new List<JqlParamRaw>
+            {
+                new("Id", 1),
+                new("_flag_", "d")
+            });
+            relations[DbTestHelper.Detail] = rows;
+
+            var upd = JqlRequest.GetInstanceByQueryName($"{_fx.ConnectionName}.{DbTestHelper.Master}.UpdateByKey");
+            upd.Params = [ new JqlParamRaw("Id", mid), new JqlParamRaw("Name", "REL-MASTER-X") ];
+            upd.Relations = relations;
+            var ex = Record.Exception(() => upd.Exec());
+            Assert.Null(ex);
+        }
+
+        [Fact(Skip = "Un-skip to run against real DB")]
+        public void ReadByKey_With_Relations_Containment_ClientIndicated()
+        {
+            var rbk = JqlRequest.GetInstanceByQueryName($"{_fx.ConnectionName}.{DbTestHelper.Master}.ReadByKey");
+            rbk.RelationsContainment = Containment.IncludeAll; // include all defined relations
+            rbk.ColumnsContainment = Containment.IncludeIndicatedItems;
+            rbk.ClientIndicatedColumns = ["Id","Name"]; // keep it light
+            var r = rbk.Exec();
+            Assert.NotNull(r);
+        }
+
+        [Fact(Skip = "Un-skip to run against real DB")]
+        public void ReadList_AddAggregations_To_MainSelect()
+        {
+            var req = JqlRequest.GetInstanceByQueryName($"{_fx.ConnectionName}.{DbTestHelper.Master}.ReadList");
+            req.AddAggregationsToMainSelect = true;
+            req.AggregationsContainment = Containment.IncludeIndicatedItems;
+            req.ClientIndicatedAggregations = ["Count"]; // append count agg to main select
+            var r = req.Exec();
+            Assert.NotNull(r);
+        }
     }
 }
