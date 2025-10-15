@@ -37,7 +37,9 @@ namespace JQL
 		}
 		public static bool ColumnIsForReadByKey(this JqlColumn dbColumn)
         {
-            // todo : implemention required
+            // Exclude sensitive and heavy columns by default
+            if (dbColumn.IsFileOrRelatedColumns()) return false;
+            if (dbColumn.Name.ContainsIgnoreCase("password")) return false;
             return true;
         }
         public static bool ColumnIsForReadList(this JqlColumn dbColumn)

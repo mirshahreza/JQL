@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using JQL;
 using Xunit;
 
 namespace JQL.Test
@@ -56,6 +58,49 @@ namespace JQL.Test
 
             var filtered = cols.RemoveAuditingColumns();
             Assert.DoesNotContain(filtered, c => c.Name == JqlUtils.CreatedOn);
+        }
+
+        [Fact]
+        public void ColumnIsForCreate_Excludes_Identity_Default_And_Password()
+        {
+            var idCol = new JqlColumn("Id") { DbType = "INT", IsIdentity = true };
+            Assert.False(JqlUtils.ColumnIsForCreate(idCol));
+
+            var defCol = new JqlColumn("CreatedOn") { DbType = "DATETIME", DbDefault = "GETDATE()" };
+            Assert.False(JqlUtils.ColumnIsForCreate(defCol));
+
+            var passCol = new JqlColumn("UserPassword") { DbType = "NVARCHAR" };
+            Assert.False(JqlUtils.ColumnIsForCreate(passCol));
+
+            var okCol = new JqlColumn("Name") { DbType = "NVARCHAR" };
+            Assert.True(JqlUtils.ColumnIsForCreate(okCol));
+        }
+
+        [Fact]
+        public void ColumnIsForUpdateByKey_Excludes_CreatedFields_And_Password()
+        {
+            var createdBy = new JqlColumn("CreatedBy") { DbType = "INT" };
+            Assert.False(JqlUtils.ColumnIsForUpdateByKey(createdBy));
+
+            var passCol = new JqlColumn("PasswordHash") { DbType = "NVARCHAR" };
+            Assert.False(JqlUtils.ColumnIsForUpdateByKey(passCol));
+
+            var ok = new JqlColumn("Title") { DbType = "NVARCHAR" };
+            Assert.True(JqlUtils.ColumnIsForUpdateByKey(ok));
+        }
+
+        [Fact]
+        public void ColumnIsForReadList_Allows_Normal_Text_Columns()
+        {
+            var ok = new JqlColumn("Name") { DbType = "NVARCHAR" };
+            Assert.True(JqlUtils.ColumnIsForReadList(ok));
+        }
+
+        [Fact]
+        public void GetSetColumnParamPair_Formats_Correctly()
+        {
+            var s = JqlUtils.GetSetColumnParamPair("Users", "Name", 3);
+            Assert.Equal("[Users].[Name]=@Users_Name_3", s);
         }
     }
 }
