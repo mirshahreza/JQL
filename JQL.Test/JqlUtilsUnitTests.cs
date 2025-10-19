@@ -26,32 +26,32 @@ namespace JQL.Test
         public void ColumnIsForDelete_Respects_Skip_Suffix_And_Others()
         {
             var c1 = new JqlColumn("Picture_xs") { DbType = "NVARCHAR" };
-            Assert.False(JqlUtils.ColumnIsForDelete(c1));
+            Assert.False(JqlUtils.SuggestedForDelete(c1));
 
             var c2 = new JqlColumn("SomeXml") { DbType = "NVARCHAR" };
-            Assert.False(JqlUtils.ColumnIsForDelete(c2));
+            Assert.False(JqlUtils.SuggestedForDelete(c2));
 
             var c3 = new JqlColumn("HtmlBody") { DbType = "NVARCHAR" };
-            Assert.False(JqlUtils.ColumnIsForDelete(c3));
+            Assert.False(JqlUtils.SuggestedForDelete(c3));
 
             var c4 = new JqlColumn("Pwd") { DbType = "NVARCHAR" };
-            Assert.True(JqlUtils.ColumnIsForDelete(c4));
+            Assert.True(JqlUtils.SuggestedForDelete(c4));
         }
 
         [Fact]
         public void ColumnIsForAggregatedReadList_Filters_By_Rules()
         {
             var pk = new JqlColumn("Id") { IsPrimaryKey = true, DbType = "INT" };
-            Assert.False(JqlUtils.ColumnIsForAggregatedReadList(pk));
+            Assert.False(JqlUtils.SuggestedForAggregatedReadList(pk));
 
             var name = new JqlColumn("Name") { DbType = "NVARCHAR", Size = "100" };
-            Assert.False(JqlUtils.ColumnIsForAggregatedReadList(name));
+            Assert.False(JqlUtils.SuggestedForAggregatedReadList(name));
 
             var bigText = new JqlColumn("Desc") { DbType = "NVARCHAR", Size = "1000" };
-            Assert.False(JqlUtils.ColumnIsForAggregatedReadList(bigText));
+            Assert.False(JqlUtils.SuggestedForAggregatedReadList(bigText));
 
             var smallText = new JqlColumn("Short") { DbType = "NVARCHAR", Size = "50" };
-            Assert.True(JqlUtils.ColumnIsForAggregatedReadList(smallText));
+            Assert.True(JqlUtils.SuggestedForAggregatedReadList(smallText));
         }
 
         [Fact]

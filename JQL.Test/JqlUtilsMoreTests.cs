@@ -31,17 +31,17 @@ namespace JQL.Test
             var bigText = new JqlColumn("Html") { DbType = "nvarchar", Size = "1024" };
             var num = new JqlColumn("Amount") { DbType = "decimal" };
 
-            Assert.False(pk.ColumnIsForAggregatedReadList());
-            Assert.False(img.ColumnIsForAggregatedReadList());
-            Assert.False(pass.ColumnIsForAggregatedReadList());
-            Assert.False(bigText.ColumnIsForAggregatedReadList());
-            Assert.True(num.ColumnIsForAggregatedReadList());
+            Assert.False(pk.SuggestedForAggregatedReadList());
+            Assert.False(img.SuggestedForAggregatedReadList());
+            Assert.False(pass.SuggestedForAggregatedReadList());
+            Assert.False(bigText.SuggestedForAggregatedReadList());
+            Assert.True(num.SuggestedForAggregatedReadList());
 
-            Assert.False(img.ColumnIsForReadList());
-            Assert.False(pass.ColumnIsForReadList());
-            Assert.True(num.ColumnIsForReadList());
+            Assert.False(img.SuggestedForReadList());
+            Assert.False(pass.SuggestedForReadList());
+            Assert.True(num.SuggestedForReadList());
 
-            Assert.False(new JqlColumn("File_xs") { DbType = "image" }.ColumnIsForDelete());
+            Assert.False(new JqlColumn("File_xs") { DbType = "image" }.SuggestedForDelete());
         }
 
         [Fact]
@@ -64,36 +64,36 @@ namespace JQL.Test
         public void ColumnIsForCreate_Excludes_Identity_Default_And_Password()
         {
             var idCol = new JqlColumn("Id") { DbType = "INT", IsIdentity = true };
-            Assert.False(JqlUtils.ColumnIsForCreate(idCol));
+            Assert.False(JqlUtils.SuggestedForCreate(idCol));
 
             var defCol = new JqlColumn("CreatedOn") { DbType = "DATETIME", DbDefault = "GETDATE()" };
-            Assert.False(JqlUtils.ColumnIsForCreate(defCol));
+            Assert.False(JqlUtils.SuggestedForCreate(defCol));
 
             var passCol = new JqlColumn("UserPassword") { DbType = "NVARCHAR" };
-            Assert.False(JqlUtils.ColumnIsForCreate(passCol));
+            Assert.False(JqlUtils.SuggestedForCreate(passCol));
 
             var okCol = new JqlColumn("Name") { DbType = "NVARCHAR" };
-            Assert.True(JqlUtils.ColumnIsForCreate(okCol));
+            Assert.True(JqlUtils.SuggestedForCreate(okCol));
         }
 
         [Fact]
         public void ColumnIsForUpdateByKey_Excludes_CreatedFields_And_Password()
         {
             var createdBy = new JqlColumn("CreatedBy") { DbType = "INT" };
-            Assert.False(JqlUtils.ColumnIsForUpdateByKey(createdBy));
+            Assert.False(JqlUtils.SuggestedForUpdateByKey(createdBy));
 
             var passCol = new JqlColumn("PasswordHash") { DbType = "NVARCHAR" };
-            Assert.False(JqlUtils.ColumnIsForUpdateByKey(passCol));
+            Assert.False(JqlUtils.SuggestedForUpdateByKey(passCol));
 
             var ok = new JqlColumn("Title") { DbType = "NVARCHAR" };
-            Assert.True(JqlUtils.ColumnIsForUpdateByKey(ok));
+            Assert.True(JqlUtils.SuggestedForUpdateByKey(ok));
         }
 
         [Fact]
         public void ColumnIsForReadList_Allows_Normal_Text_Columns()
         {
             var ok = new JqlColumn("Name") { DbType = "NVARCHAR" };
-            Assert.True(JqlUtils.ColumnIsForReadList(ok));
+            Assert.True(JqlUtils.SuggestedForReadList(ok));
         }
 
         [Fact]

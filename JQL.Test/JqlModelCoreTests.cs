@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using JQL;
 using PowNet.Common;
 using Xunit;
 
@@ -12,12 +9,12 @@ namespace JQL.Test
         public void GetPk_Returns_PrimaryKey()
         {
             var m = new JqlModel("Db","Tree","C:/tmp");
-            m.Columns.AddRange(new[]
-            {
-                new JqlColumn("Id") { DbType = "int", IsPrimaryKey = true },
+            m.Columns.AddRange(
+			[
+				new JqlColumn("Id") { DbType = "int", IsPrimaryKey = true },
                 new JqlColumn("ParentId") { DbType = "int", Fk = new JqlFk("FK","Tree","Id") },
                 new JqlColumn("Name") { DbType = "nvarchar", Size = "50" }
-            });
+            ]);
             var pk = m.GetPk();
             Assert.Equal("Id", pk.Name);
             Assert.True(m.IsTree());
@@ -39,11 +36,11 @@ namespace JQL.Test
             var m = new JqlModel("Db","Master","C:/tmp");
             // Simulate ReadList behavior by exposing only MTM relation name in the query relations
             m.DbQueries.Add(new JqlQuery("ReadList", QueryType.ReadList) { Relations = new List<string>{ "R2" } });
-            m.Relations = new List<JqlRelation>
-            {
-                new("Detail","Id","MasterId") { RelationName = "R1", RelationType = RelationType.OneToMany, IsFileCentric = false },
+            m.Relations =
+			[
+				new("Detail","Id","MasterId") { RelationName = "R1", RelationType = RelationType.OneToMany, IsFileCentric = false },
                 new("MasterTag","Id","MasterId") { RelationName = "R2", RelationType = RelationType.ManyToMany, IsFileCentric = false }
-            };
+            ];
             var onlyOtm = m.GetRelationsForAQuery("ReadList", RelationType.OneToMany);
             var onlyMtm = m.GetRelationsForAQuery("ReadList", RelationType.ManyToMany);
             Assert.Empty(onlyOtm);

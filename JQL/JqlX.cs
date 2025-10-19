@@ -1,10 +1,27 @@
 using PowNet.Common;
-using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace JQL
 {
-    // Stage 5: Consolidated simple data types into a single file and converted suitable ones to record classes
-    public class JqlColumnChangeTrackable(string name) : JqlColumn(name)
+    public record class JqlColumn(string Name)
+    {
+        public string DevNote { set; get; } = "";
+        public bool IsPrimaryKey { set; get; } = false;
+        public string DbType { set; get; } = "VARCHAR";
+        public string? Size { set; get; }
+        public bool IsIdentity { set; get; } = false;
+        public string? IdentityStart { set; get; }
+        public string? IdentityStep { set; get; }
+        public bool AllowNull { set; get; }
+        public string? DbDefault { set; get; }
+        public JqlFk? Fk { set; get; }
+        public bool? IsHumanId { set; get; }
+        public bool? IsSortable { set; get; }
+
+        public string? UpdateGroup { set; get; } = "";
+    }
+    
+    public record class JqlColumnChangeTrackable(string Name) : JqlColumn(Name)
     {
         public string State { set; get; } = "";
         public string InitialName { set; get; } = "";
@@ -61,6 +78,9 @@ namespace JQL
         }
     }
 
+    public record class JqlAggregation(string Name, string Phrase);
+    public record class JqlParamRaw(string Name, object? Value = null);
+
     public record class JqlRefTo
     {
         public string TargetTable { get; set; }
@@ -75,6 +95,12 @@ namespace JQL
         }
     }
 
+    public record class JqlRequestRaw
+    {
+        public string Id { get; init; } = "";
+        public string Method { get; init; } = "";
+        public JsonElement Inputs { get; init; }
+    }
     public record class JqlQueryColumn
     {
         public bool? Hidden { get; set; }

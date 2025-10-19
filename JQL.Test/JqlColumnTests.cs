@@ -10,29 +10,29 @@ namespace JQL.Test
         [Fact]
         public void CalculateBestUiWidget_ReturnsExpectedWidgets()
         {
-            Assert.Equal(UiWidget.NoWidget, new JqlColumn("Id") { IsIdentity = true }.CalculateBestUiWidget());
-            Assert.Equal(UiWidget.DisabledTextbox, new JqlColumn(JqlUtils.CreatedOn) { DbType = "DATETIME" }.CalculateBestUiWidget());
-            Assert.Equal(UiWidget.Combo, new JqlColumn("CatId") { Fk = new JqlFk("FK", "Cat", "Id") }.CalculateBestUiWidget());
-            Assert.Equal(UiWidget.Checkbox, new JqlColumn("IsActive") { DbType = "bit" }.CalculateBestUiWidget());
-            Assert.Equal(UiWidget.ImageView, new JqlColumn("picture_xs") { DbType = "image" }.CalculateBestUiWidget());
-            Assert.Equal(UiWidget.FileView, new JqlColumn("file") { DbType = "image" }.CalculateBestUiWidget());
-            Assert.Equal(UiWidget.DateTimePicker, new JqlColumn("d") { DbType = "datetime2" }.CalculateBestUiWidget());
-            Assert.Equal(UiWidget.DatePicker, new JqlColumn("d") { DbType = "date" }.CalculateBestUiWidget());
-            Assert.Equal(UiWidget.TimePicker, new JqlColumn("t") { DbType = "time" }.CalculateBestUiWidget());
-            Assert.Equal(UiWidget.Htmlbox, new JqlColumn("html_note") { DbType = "nvarchar", Size = "100" }.CalculateBestUiWidget());
-            Assert.Equal(UiWidget.MultilineTextbox, new JqlColumn("txt") { DbType = "text" }.CalculateBestUiWidget());
-            Assert.Equal(UiWidget.MultilineTextbox, new JqlColumn("ntxt") { DbType = "ntext" }.CalculateBestUiWidget());
-            Assert.Equal(UiWidget.MultilineTextbox, new JqlColumn("desc") { DbType = "nvarchar", Size = "200" }.CalculateBestUiWidget());
-            Assert.Equal(UiWidget.Textbox, new JqlColumn("qty") { DbType = "int" }.CalculateBestUiWidget());
-            Assert.Equal(UiWidget.Textbox, new JqlColumn("name") { DbType = "nvarchar", Size = "50" }.CalculateBestUiWidget());
+            Assert.Equal(UiWidget.NoWidget, new JqlColumn("Id") { IsIdentity = true }.SuggestBestUiWidget());
+            Assert.Equal(UiWidget.DisabledTextbox, new JqlColumn(JqlUtils.CreatedOn) { DbType = "DATETIME" }.SuggestBestUiWidget());
+            Assert.Equal(UiWidget.Combo, new JqlColumn("CatId") { Fk = new JqlFk("FK", "Cat", "Id") }.SuggestBestUiWidget());
+            Assert.Equal(UiWidget.Checkbox, new JqlColumn("IsActive") { DbType = "bit" }.SuggestBestUiWidget());
+            Assert.Equal(UiWidget.ImageView, new JqlColumn("picture_xs") { DbType = "image" }.SuggestBestUiWidget());
+            Assert.Equal(UiWidget.FileView, new JqlColumn("file") { DbType = "image" }.SuggestBestUiWidget());
+            Assert.Equal(UiWidget.DateTimePicker, new JqlColumn("d") { DbType = "datetime2" }.SuggestBestUiWidget());
+            Assert.Equal(UiWidget.DatePicker, new JqlColumn("d") { DbType = "date" }.SuggestBestUiWidget());
+            Assert.Equal(UiWidget.TimePicker, new JqlColumn("t") { DbType = "time" }.SuggestBestUiWidget());
+            Assert.Equal(UiWidget.Htmlbox, new JqlColumn("html_note") { DbType = "nvarchar", Size = "100" }.SuggestBestUiWidget());
+            Assert.Equal(UiWidget.MultilineTextbox, new JqlColumn("txt") { DbType = "text" }.SuggestBestUiWidget());
+            Assert.Equal(UiWidget.MultilineTextbox, new JqlColumn("ntxt") { DbType = "ntext" }.SuggestBestUiWidget());
+            Assert.Equal(UiWidget.MultilineTextbox, new JqlColumn("desc") { DbType = "nvarchar", Size = "200" }.SuggestBestUiWidget());
+            Assert.Equal(UiWidget.Textbox, new JqlColumn("qty") { DbType = "int" }.SuggestBestUiWidget());
+            Assert.Equal(UiWidget.Textbox, new JqlColumn("name") { DbType = "nvarchar", Size = "50" }.SuggestBestUiWidget());
         }
 
         [Fact]
         public void CalculateIsDisabled_ReturnsTrueForIdentityOrAuditing()
         {
-            Assert.True(new JqlColumn("Id") { IsIdentity = true }.CalculateIsDisabled());
-            Assert.True(new JqlColumn(JqlUtils.CreatedOn) { DbType = "DATETIME" }.CalculateIsDisabled());
-            Assert.False(new JqlColumn("Name") { DbType = "NVARCHAR", Size = "50" }.CalculateIsDisabled());
+            Assert.True(new JqlColumn("Id") { IsIdentity = true }.MustBeDisabled());
+            Assert.True(new JqlColumn(JqlUtils.CreatedOn) { DbType = "DATETIME" }.MustBeDisabled());
+            Assert.False(new JqlColumn("Name") { DbType = "NVARCHAR", Size = "50" }.MustBeDisabled());
         }
 
         [Fact]

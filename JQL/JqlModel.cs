@@ -3,8 +3,6 @@ using PowNet.Extensions;
 using PowNet.Services;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System;
-using System.Linq;
 
 namespace JQL
 {
@@ -15,7 +13,7 @@ namespace JQL
 		private string? _jqlModelsRoot;
 		public string DevNote { set; get; } = string.Empty;
 		public string DbConfName { set; get; } = string.Empty;
-		public string ObjectName { set; get; }
+		public string ObjectName { set; get; } = string.Empty;
         public DbObjectType ObjectType { set; get; } = DbObjectType.Table;
 
 		public string ObjectIcon { set; get; } = string.Empty;
@@ -30,9 +28,6 @@ namespace JQL
 		public List<JqlColumn> Columns { set; get; } = [];
         public List<JqlRelation>? Relations { set; get; }
         public List<JqlQuery> DbQueries { set; get; } = [];
-
-		public bool PreventBuildUI { set; get; } = false;
-		public bool PreventAlterServerObjects { set; get; } = false;
 
 		[JsonConstructor]
         public JqlModel() { }

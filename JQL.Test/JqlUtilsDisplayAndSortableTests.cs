@@ -8,10 +8,10 @@ namespace JQL.Test
         [Fact]
         public void ColumnIsForDisplay_Known_Display_Columns_Return_True()
         {
-            Assert.True(new JqlColumn("Name") { DbType = "NVARCHAR" }.ColumnIsForDisplay());
-            Assert.True(new JqlColumn("Title") { DbType = "NVARCHAR" }.ColumnIsForDisplay());
-            Assert.True(new JqlColumn("FirstName") { DbType = "NVARCHAR" }.ColumnIsForDisplay());
-            Assert.False(new JqlColumn("UnknownX") { DbType = "NVARCHAR" }.ColumnIsForDisplay());
+            Assert.True(new JqlColumn("Name") { DbType = "NVARCHAR" }.SuggestedForDisplay());
+            Assert.True(new JqlColumn("Title") { DbType = "NVARCHAR" }.SuggestedForDisplay());
+            Assert.True(new JqlColumn("FirstName") { DbType = "NVARCHAR" }.SuggestedForDisplay());
+            Assert.False(new JqlColumn("UnknownX") { DbType = "NVARCHAR" }.SuggestedForDisplay());
         }
 
         [Fact]

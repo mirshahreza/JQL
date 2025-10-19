@@ -265,7 +265,7 @@ namespace JQL
                 List<JqlColumn> dbColumns = DbSchemaUtils.GetTableViewColumns(dbObject.Name);
                 foreach (JqlColumn dbColumn in dbColumns)
                 {
-                    dbColumn.IsHumanId = dbColumn.ColumnIsForDisplay() ? true : null;
+                    dbColumn.IsHumanId = dbColumn.SuggestedForDisplay() ? true : null;
                     dbColumn.IsSortable = dbColumn.ColumnIsSortable() ? true : null;
                 }
 
@@ -499,15 +499,12 @@ namespace JQL
 			JqlQuery dbQuery = new(nameof(QueryType.AggregatedReadList), QueryType.AggregatedReadList) { Columns = [] };
 			foreach (JqlColumn col in dbDialog.Columns)
 			{
-				if (col.ColumnIsForAggregatedReadList())
+				if (col.SuggestedForAggregatedReadList())
 				{
 					JqlQueryColumn dbQueryColumn = new() { Name = col.Name };
 					if (col.Fk is not null && JqlModel.Exist(dbDialogFolderPath, dbDialog.DbConfName, col.Fk?.TargetTable))
 					{
-						dbQueryColumn.RefTo = new(col.Fk.TargetTable, col.Fk.TargetColumn)
-						{
-							Columns = []
-						};
+                        dbQueryColumn.RefTo = new(col.Fk.TargetTable, col.Fk.TargetColumn) { Columns = [] };
 
 						JqlModel dbDialogTarget = JqlModel.Load(dbDialogFolderPath, dbDialog.DbConfName, col.Fk?.TargetTable);
 						foreach (var targetCol in dbDialogTarget.Columns)
@@ -542,7 +539,7 @@ namespace JQL
 			JqlQuery dbQuery = new(nameof(QueryType.ReadList), QueryType.ReadList) { Columns = [] };
 			foreach (JqlColumn col in dbDialog.Columns)
 			{
-				if (col.ColumnIsForReadList())
+				if (col.SuggestedForReadList())
 				{
 					JqlQueryColumn dbQueryColumn = new() { Name = col.Name };
 					if (col.Fk is not null && JqlModel.Exist(dbDialogFolderPath, dbDialog.DbConfName, col.Fk?.TargetTable))
@@ -587,7 +584,7 @@ namespace JQL
 			JqlQuery dbQuery = new(nameof(QueryType.Create), QueryType.Create) { Columns = [], Params = [] };
 			foreach (JqlColumn col in dbDialog.Columns)
 			{
-				if (col.ColumnIsForCreate())
+				if (col.SuggestedForCreate())
 				{
                     JqlQueryColumn dbQueryColumn = new();
 					if (col.Name.EqualsIgnoreCase(JqlUtils.CreatedBy) || col.Name.EqualsIgnoreCase(JqlUtils.UpdatedBy))
@@ -618,7 +615,7 @@ namespace JQL
 		{
 			JqlColumn pkColumn = dbDialog.GetPk();
 			JqlQuery dbQuery = new(nameof(QueryType.ReadByKey), QueryType.ReadByKey) { Columns = [] };
-			foreach (JqlColumn col in dbDialog.Columns) if (col.ColumnIsForReadByKey()) dbQuery.Columns.Add(new JqlQueryColumn() { Name = col.Name });
+			foreach (JqlColumn col in dbDialog.Columns) if (col.SuggestedForReadByKey()) dbQuery.Columns.Add(new JqlQueryColumn() { Name = col.Name });
 			dbQuery.Where = GetByPkWhere(pkColumn, dbDialog);
 			dbQuery.Relations = GetRelationsForDbQueries(dbQuery, dbDialog.Relations);
 			return dbQuery;
@@ -638,7 +635,7 @@ namespace JQL
 
 			foreach (JqlColumn col in dbDialog.Columns)
 			{
-				if ((isMainUpdateByKey == true && col.ColumnIsForUpdateByKey()) || (isMainUpdateByKey == false && specificColumns.ContainsIgnoreCase(col.Name)))
+				if ((isMainUpdateByKey == true && col.SuggestedForUpdateByKey()) || (isMainUpdateByKey == false && specificColumns.ContainsIgnoreCase(col.Name)))
 				{
                     if(existingUpdateByKeyQ.Columns?.FirstOrDefault(c=>c.Name.EqualsIgnoreCase(col.Name)) is null)
                     {
@@ -688,7 +685,7 @@ namespace JQL
 			JqlQuery dbQuery = new(nameof(QueryType.Delete), QueryType.Delete) { Columns = [] };
 
 			foreach (JqlColumn col in dbDialog.Columns)
-				if (col.ColumnIsForDelete()) dbQuery.Columns.Add(new JqlQueryColumn() { Name = col.Name });
+				if (col.SuggestedForDelete()) dbQuery.Columns.Add(new JqlQueryColumn() { Name = col.Name });
 
 			return dbQuery;
 		}

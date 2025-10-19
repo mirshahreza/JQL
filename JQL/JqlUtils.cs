@@ -1,8 +1,7 @@
-﻿using PowNet.Extensions;
-using System;
-using System.Collections.Generic;
+﻿using PowNet.Common;
+using PowNet.Extensions;
+using System.Data;
 using System.Globalization;
-using System.Linq;
 
 namespace JQL
 {
@@ -27,7 +26,7 @@ namespace JQL
         private static readonly HashSet<string> CreatedFieldsSet;
         private static readonly HashSet<string> AuditingFieldsSet;
         
-        public static bool ColumnIsForDisplay(this JqlColumn dbColumn)
+        public static bool SuggestedForDisplay(this JqlColumn dbColumn)
         {
             return DisplayColumnNames.Contains(dbColumn.Name);
         }
@@ -35,20 +34,20 @@ namespace JQL
 		{
             return SortableColumnNames.Contains(dbColumn.Name);
 		}
-		public static bool ColumnIsForReadByKey(this JqlColumn dbColumn)
+		public static bool SuggestedForReadByKey(this JqlColumn dbColumn)
         {
             // Exclude sensitive and heavy columns by default
             if (dbColumn.IsFileOrRelatedColumns()) return false;
             if (dbColumn.Name.ContainsIgnoreCase("password")) return false;
             return true;
         }
-        public static bool ColumnIsForReadList(this JqlColumn dbColumn)
+        public static bool SuggestedForReadList(this JqlColumn dbColumn)
         {
 			if (dbColumn.IsFileOrRelatedColumns()) return false;
 			if (dbColumn.Name.ContainsIgnoreCase("password")) return false;
             return true;
         }
-        public static bool ColumnIsForAggregatedReadList(this JqlColumn dbColumn)
+        public static bool SuggestedForAggregatedReadList(this JqlColumn dbColumn)
         {
             var name = dbColumn.Name;
             if (dbColumn.IsPrimaryKey) return false;
@@ -57,14 +56,10 @@ namespace JQL
             if (name.ContainsIgnoreCase("Title")) return false;
             if (name.EndsWithIgnoreCase(DateSuffix)) return false;
 			if (name.ContainsIgnoreCase("password")) return false;
-            if (!dbColumn.IsNumerical())
-            {
-                if (dbColumn.Size is not null && int.TryParse(dbColumn.Size, out var sizeVal) && sizeVal > 256)
-                    return false;
-            }
+            if (!dbColumn.IsNumerical() && dbColumn.Size is not null && int.TryParse(dbColumn.Size, out var sizeVal) && sizeVal > 256) return false;
             return true;
         }
-        public static bool ColumnIsForDelete(this JqlColumn dbColumn)
+        public static bool SuggestedForDelete(this JqlColumn dbColumn)
         {
 			var name = dbColumn.Name;
 			if (name.EndsWithIgnoreCase(DeleteSkipSuffix)) return false;
@@ -74,17 +69,119 @@ namespace JQL
 			if (name.ContainsIgnoreCase("password")) return false;
             return true;
         }
-        public static bool ColumnIsForCreate(this JqlColumn dbColumn)
+        public static bool SuggestedForCreate(this JqlColumn dbColumn)
         {
             if (dbColumn.IsIdentity || dbColumn.DbDefault != null) return false;
 			if (dbColumn.Name.ContainsIgnoreCase("password")) return false;
 			return true;
         }
-        public static bool ColumnIsForUpdateByKey(this JqlColumn dbColumn)
+        public static bool SuggestedForUpdateByKey(this JqlColumn dbColumn)
         {
             if (CreatedFieldsSet.Contains(dbColumn.Name)) return false;
 			if (dbColumn.Name.ContainsIgnoreCase("password")) return false;
 			return true;
+        }
+
+
+        public static bool IsFileOrRelatedColumns(this JqlColumn dbColumn)
+        {
+            if (dbColumn.DbType.EqualsIgnoreCase("image")) return true;
+            if (dbColumn.Name.EndsWithIgnoreCase("_filesize")) return true;
+            if (dbColumn.Name.EndsWithIgnoreCase("_filemime")) return true;
+            if (dbColumn.Name.EndsWithIgnoreCase("_filename")) return true;
+            return false;
+        }
+
+        public static bool IsNumerical(this JqlColumn dbColumn)
+        {
+            if (dbColumn.DbType.ContainsIgnoreCase("int")) return true;
+            if (dbColumn.DbType.ContainsIgnoreCase("numeric")) return true;
+            if (dbColumn.DbType.ContainsIgnoreCase("real")) return true;
+            if (dbColumn.DbType.ContainsIgnoreCase("money")) return true;
+            if (dbColumn.DbType.ContainsIgnoreCase("float")) return true;
+            return false;
+        }
+        public static bool IsLargeContent(this JqlColumn dbColumn)
+        {
+            if (dbColumn.DbType.EqualsIgnoreCase("text")) return true;
+            if (dbColumn.DbType.EqualsIgnoreCase("ntext")) return true;
+            if ((dbColumn.DbType.EqualsIgnoreCase("varchar") || dbColumn.DbType.EqualsIgnoreCase("nvarchar")) && dbColumn.Size?.ToIntSafe() > 512) return true;
+            if (dbColumn.DbType.EqualsIgnoreCase("image") && !dbColumn.Name.EndsWithIgnoreCase("_xs")) return true;
+
+            return false;
+        }
+
+        public static bool IsDateTime(this JqlColumn dbColumn)
+        {
+            return dbColumn.DbType.EqualsIgnoreCase("datetime");
+        }
+
+        public static bool IsDate(this JqlColumn dbColumn)
+        {
+            return dbColumn.DbType.EqualsIgnoreCase("date");
+        }
+        public static bool IsString(this JqlColumn dbColumn)
+        {
+            return dbColumn.DbType.ContainsIgnoreCase("char") || dbColumn.DbType.ContainsIgnoreCase("text");
+        }
+
+        public static bool MustBeDisabled(this JqlColumn dbColumn)
+        {
+            if (dbColumn.IsIdentity || dbColumn.IsAuditing()) return true;
+            return false;
+        }
+        public static JqlColumnChangeTrackable ToChangeTrackable(this JqlColumn dbColumn)
+        {
+            return new JqlColumnChangeTrackable(dbColumn.Name)
+            {
+                AllowNull = dbColumn.AllowNull,
+                DbDefault = dbColumn.DbDefault,
+                DbType = dbColumn.DbType,
+                Fk = dbColumn.Fk,
+                IsHumanId = dbColumn.IsHumanId,
+                IdentityStart = dbColumn.IdentityStart,
+                IdentityStep = dbColumn.IdentityStep,
+                IsIdentity = dbColumn.IsIdentity,
+                IsPrimaryKey = dbColumn.IsPrimaryKey,
+                Size = dbColumn.Size,
+                InitialName = dbColumn.Name,
+                State = ""
+            };
+        }
+
+
+        public static UiWidget SuggestBestUiWidget(this JqlColumn dbColumn)
+        {
+            if (dbColumn.IsIdentity) return UiWidget.NoWidget;
+
+            if (dbColumn.IsAuditing()) return UiWidget.DisabledTextbox;
+
+            if (dbColumn.Fk is not null) return UiWidget.Combo;
+
+            if (dbColumn.DbType.EqualsIgnoreCase("bit")) return UiWidget.Checkbox;
+
+            if (dbColumn.DbType.EqualsIgnoreCase("image") && dbColumn.Name.StartsWithIgnoreCase("picture")) return UiWidget.ImageView;
+            if (dbColumn.DbType.EqualsIgnoreCase("image")) return UiWidget.FileView;
+
+            if (dbColumn.DbType.ContainsIgnoreCase("datetime")) return UiWidget.DateTimePicker;
+            if (dbColumn.DbType.EqualsIgnoreCase("date")) return UiWidget.DatePicker;
+            if (dbColumn.DbType.EqualsIgnoreCase("time")) return UiWidget.TimePicker;
+
+            if (dbColumn.Name.ContainsIgnoreCase("html")) return UiWidget.Htmlbox;
+
+            if (dbColumn.DbType.EqualsIgnoreCase("text")) return UiWidget.MultilineTextbox;
+            if (dbColumn.DbType.EqualsIgnoreCase("ntext")) return UiWidget.MultilineTextbox;
+            if (dbColumn.Size is not null && dbColumn.Size.ToIntSafe() > 160) return UiWidget.MultilineTextbox;
+
+            if (dbColumn.IsNumerical()) return UiWidget.Textbox;
+
+            return UiWidget.Textbox;
+        }
+
+        public static bool IsAuditing(this JqlColumn dbColumn)
+        {
+            if (AuditingFields.ContainsIgnoreCase(dbColumn.Name)) return true;
+            return false;
         }
 
         public static string GenParamName(string objectName, string columnName, int? index = null)

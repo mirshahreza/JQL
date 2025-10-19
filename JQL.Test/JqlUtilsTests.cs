@@ -33,15 +33,15 @@ namespace JQL.Test
             var bigText = new JqlColumn("Description") { DbType = "nvarchar", Size = "300" };
             var createBlocked = new JqlColumn("C") { DbType = "int", DbDefault = "1" };
 
-            Assert.False(file.ColumnIsForReadList());
-            Assert.False(password.ColumnIsForReadList());
-            Assert.True(regular.ColumnIsForReadList());
+            Assert.False(file.SuggestedForReadList());
+            Assert.False(password.SuggestedForReadList());
+            Assert.True(regular.SuggestedForReadList());
 
-            Assert.False(bigText.ColumnIsForAggregatedReadList());
-            Assert.False(file.ColumnIsForAggregatedReadList());
+            Assert.False(bigText.SuggestedForAggregatedReadList());
+            Assert.False(file.SuggestedForAggregatedReadList());
 
-            Assert.False(createBlocked.ColumnIsForCreate());
-            Assert.True(regular.ColumnIsForCreate());
+            Assert.False(createBlocked.SuggestedForCreate());
+            Assert.True(regular.SuggestedForCreate());
         }
 
         [Fact]

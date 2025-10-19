@@ -584,10 +584,7 @@ namespace JQL
                 }
                 
                 columnsBuilder.Append(cc);
-                if (groupColumnsBuilder is not null) 
-                {
-                    groupColumnsBuilder.Append(cc.ContainsIgnoreCase(" AS ") ? cc.Split(JqlUtils.AsStr, StringSplitOptions.None)[0] : cc);
-                }
+                groupColumnsBuilder?.Append(cc.ContainsIgnoreCase(" AS ") ? cc.Split(JqlUtils.AsStr, StringSplitOptions.None)[0] : cc);
                 
                 if (dbQueryColumn.RefTo is not null)
                 {
@@ -597,10 +594,7 @@ namespace JQL
                     Tuple<string, string> left = CompileRefTo(targetTable, dbQueryColumn.Name, dbQueryColumn.RefTo);
                     columnsBuilder.Append(", ").Append(left.Item1);
                     leftsBuilder.Append(left.Item2);
-                    if (groupColumnsBuilder is not null) 
-                    {
-                        groupColumnsBuilder.Append(", ").Append(left.Item1.Split(JqlUtils.AsStr, StringSplitOptions.None)[0]);
-                    }
+                    groupColumnsBuilder?.Append(", ").Append(left.Item1.Split(JqlUtils.AsStr, StringSplitOptions.None)[0]);
                 }
                 isFirst = false;
             }
@@ -813,10 +807,7 @@ namespace JQL
                 foreach (var clause in OrderClauses)
                 {
                     string n = clause.Name;
-                    if (!n.ContainsIgnoreCase(".") && !n.ContainsIgnoreCase("[") && !n.ContainsIgnoreCase("("))
-                    {
-                        n = $"[{GetFinalObjectName()}].[{n}]";
-                    }
+                    if (!n.Contains('.') && !n.Contains('[') && !n.Contains('(')) n = $"[{GetFinalObjectName()}].[{n}]";
                     clauses += $"{sep}{n} {clause.OrderDirection}";
                     sep = ", ";
                 }
