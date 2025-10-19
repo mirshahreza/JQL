@@ -102,16 +102,17 @@ namespace JQL
             DataTable dataTable = DbIOInstance.ToDataTables("SELECT * FROM ZzSelectTablesViewsColumns" + where + " ORDER BY ViewOrder").FirstOrDefault().Value;
             DataTable dtFks = GetTableFks(objectName);
             List<JqlColumn> columns = [];
+            static bool AsBool(object? v) => v is not null && v != DBNull.Value && Convert.ToBoolean(v);
             foreach (DataRow row in dataTable.Rows)
             {
                 JqlColumn dbColumn = new((string)row["ColumnName"])
                 {
-                    IsPrimaryKey = (bool)row["IsPrimaryKey"],
+                    IsPrimaryKey = AsBool(row["IsPrimaryKey"]),
                     DbType = (string)row["ColumnType"],
                     Size = row["MaxLen"] == DBNull.Value ? null : row["MaxLen"].ToString(),
-                    AllowNull = (bool)row["AllowNull"],
+                    AllowNull = AsBool(row["AllowNull"]),
                     DbDefault = row["DbDefault"] == DBNull.Value ? null : (string)row["DbDefault"],
-                    IsIdentity = (bool)row["IsIdentity"],
+                    IsIdentity = AsBool(row["IsIdentity"]),
                     IdentityStart = row["IdentityStart"] == DBNull.Value ? null : row["IdentityStart"].ToString(),
                     IdentityStep = row["IdentityStep"] == DBNull.Value ? null : row["IdentityStep"].ToString()
                 };
@@ -120,7 +121,7 @@ namespace JQL
                     if (dataRow["ColumnName"].ToString() == dbColumn.Name)
 	                    dbColumn.Fk = new((string)dataRow["FkName"], (string)dataRow["TargetTable"], (string)dataRow["TargetColumn"])
 	                    {
-		                    EnforceRelation = (bool)dataRow["EnforceRelation"]
+		                    EnforceRelation = AsBool(dataRow["EnforceRelation"]) 
 	                    };
                 }
                 columns.Add(dbColumn);
